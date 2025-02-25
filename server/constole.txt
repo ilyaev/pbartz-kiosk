@@ -1,0 +1,10 @@
+wlr-randr --output DSI-2 --off # turn off monitor
+wlr-randr --output DSI-2 --on # turn on monitor
+
+chromium-browser --kiosk --start-fullscreen --incognito "https://www.example.com" # run chromium fullscreen
+
+
+Weather API:
+
+https://api.weather.gov/gridpoints/MTR/101,101/forecast/hourly
+https://weather-gov.github.io/api/general-faqs

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebGL Shader Rectangle</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="myCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('myCanvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    if (!gl) {
+      alert('Unable to initialize WebGL. Your browser may not support it.');
+    //   return;
+    }
+
+    // Vertex Shader (Defines the shape - a rectangle in this case)
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+      uniform vec2 u_resolution;
+
+      void main() {
+        // Convert the position from pixels to 0.0 to 1.0
+        vec2 zeroToOne = a_position / u_resolution;
+
+        // Convert from 0->1 to 0->2
+        vec2 zeroToTwo = zeroToOne * 2.0;
+
+        // Convert from 0->2 to -1->+1 (clipspace)
+        vec2 clipSpace = zeroToTwo - 1.0;
+
+        gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+      }
+    `;
+
+    // Fragment Shader (Defines the color/texture - your custom shader)
+    const fragmentShaderSource = `
+      precision mediump float;
+      precision mediump vec2; // Ensure consistent precision for u_resolution
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      // Example: Simple Gradient Shader
+      void main() {
+        vec2 st = gl_FragCoord.xy / u_resolution.xy;  // Normalized pixel coordinates (0.0 to 1.0)
+        gl_FragColor = vec4(st.x, st.y, 0.5 + 0.5*sin(u_time), 1.0); // Red, Green, pulsating Blue, Alpha
+      }
+
+      /* Example 2: Noise-based Shader (more complex, showing a different effect)
+      //  You'll likely need a noise function for this. A simple one is provided below:
+      float random (vec2 st) {
+          return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+      }
+
+      void main() {
+        vec2 st = gl_FragCoord.xy / u_resolution.xy;
+        float noiseValue = random(st + u_time);  // Add time for animation
+        gl_FragColor = vec4(noiseValue, noiseValue, noiseValue, 1.0); // Grayscale noise
+      }
+      */
+    `;
+
+    // --- WebGL Setup ---
+
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(program));
+        return null;
+      }
+      return program;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const shaderProgram = createProgram(gl, vertexShader, fragmentShader);
+
+    if (!shaderProgram) {
+      console.error('Failed to create shader program');
+    //   return;
+    }
+
+    // Get attribute and uniform locations
+    const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_position');
+    const resolutionUniformLocation = gl.getUniformLocation(shaderProgram, 'u_resolution');
+    const timeUniformLocation = gl.getUniformLocation(shaderProgram, 'u_time');
+
+    // --- Data and Buffers ---
+
+    // Create a buffer for the rectangle's vertices
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    // Define the rectangle's vertices (two triangles)
+    const positions = [
+      10, 20,  // Top-left
+      300, 20, // Top-right
+      10, 150, // Bottom-left
+      300, 20,  // Top-right
+      10, 150, // Bottom-left
+      300, 150, // Bottom-right
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    // --- Rendering ---
+    function render(time) {
+      time *= 0.001; //convert to seconds
+
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.clearColor(0, 0, 0, 0); // Clear to transparent
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      gl.useProgram(shaderProgram);
+
+      // Pass uniforms
+      gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+      gl.uniform1f(timeUniformLocation, time);
+
+      // Enable the attribute
+      gl.enableVertexAttribArray(positionAttributeLocation);
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+      // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+      const size = 2;          // 2 components per iteration (x, y)
+      const type = gl.FLOAT;   // the data is 32bit floats
+      const normalize = false; // don't normalize the data
+      const stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+      const offset = 0;        // start at the beginning of the buffer
+      gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+      // Draw the rectangle
+      const primitiveType = gl.TRIANGLES;
+      const count = 6;  // 6 vertices (2 triangles)
+      gl.drawArrays(primitiveType, offset, count);
+
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Real-time Audio Visualization</title>
+<style>
+  canvas {
+    border: 1px solid black;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="waveformCanvas" width="400" height="150"></canvas>
+<canvas id="rmsCanvas" width="100" height="150"></canvas>
+
+<script>
+  // --- Audio Setup ---
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioContext.createAnalyser();
+  const sampleRate = audioContext.sampleRate;
+  const windowSizeSeconds = 0.01; // 10ms
+  const bufferSize = Math.round(sampleRate * windowSizeSeconds);
+
+  analyser.fftSize = 2048; //Larger than buffersize for better resolution, but data will be mostly zero.
+  analyser.smoothingTimeConstant = 0; // No smoothing for fast response
+
+  const buffer = new Float32Array(bufferSize);
+
+  // --- Visualization Setup ---
+  const waveformCanvas = document.getElementById('waveformCanvas');
+  const waveformCtx = waveformCanvas.getContext('2d');
+  const rmsCanvas = document.getElementById('rmsCanvas');
+  const rmsCtx = rmsCanvas.getContext('2d');
+
+  // --- Functions ---
+
+  function calculateRMS(data) {
+      let sumOfSquares = 0;
+      for (const amplitude of data) {
+          sumOfSquares += amplitude * amplitude;
+      }
+      return Math.sqrt(sumOfSquares / data.length);
+  }
+
+  function calculateZCR(data) {
+      let zeroCrossings = 0;
+      for (let i = 1; i < data.length; i++) {
+          if ((data[i] >= 0 && data[i - 1] < 0) || (data[i] < 0 && data[i - 1] >= 0)) {
+              zeroCrossings++;
+          }
+      }
+      return zeroCrossings / (data.length - 1);
+  }
+
+
+  function drawWaveform() {
+      waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+      waveformCtx.beginPath();
+      waveformCtx.strokeStyle = 'blue';
+
+      const sliceWidth = waveformCanvas.width / bufferSize;
+      let x = 0;
+
+      for (let i = 0; i < bufferSize; i++) {
+          const y = (buffer[i] + 1) / 2 * waveformCanvas.height; // Scale to canvas
+          waveformCtx.lineTo(x, y);
+          x += sliceWidth;
+      }
+
+      waveformCtx.stroke();
+  }
+
+
+function drawRMS() {
+    rmsCtx.clearRect(0, 0, rmsCanvas.width, rmsCanvas.height);
+    const rms = calculateRMS(buffer);
+    const barHeight = rms * rmsCanvas.height; // Scale to canvas
+
+    rmsCtx.fillStyle = 'red';
+    rmsCtx.fillRect(0, rmsCanvas.height - barHeight, rmsCanvas.width, barHeight);
+}
+
+
+function drawZCR(){ // ZCR on the waveform canvas.
+    const zcr = calculateZCR(buffer);
+    // We use waveform canvas to visualize ZCR, in top of waveform.
+    waveformCtx.beginPath();
+    waveformCtx.strokeStyle = 'green';
+    waveformCtx.moveTo(0, (1-zcr) * waveformCanvas.height);
+    waveformCtx.lineTo(waveformCanvas.width, (1-zcr) * waveformCanvas.height);
+    waveformCtx.stroke();
+}
+
+  function updateVisualization() {
+    // Get the latest amplitude data
+    analyser.getFloatTimeDomainData(buffer);
+
+    drawWaveform();
+    drawRMS();
+    drawZCR();
+
+
+    requestAnimationFrame(updateVisualization);
+  }
+
+
+  // --- Get Microphone Input ---
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      // analyser.connect(audioContext.destination); // Optional: Output audio
+
+      updateVisualization(); // Start the visualization loop
+    })
+    .catch(err => {
+      console.error("Error accessing microphone:", err);
+    });
+
+</script>
+
+</body>
+</html>

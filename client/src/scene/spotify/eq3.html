@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Real-time Audio Visualization</title>
+<style>
+  canvas {
+    border: 1px solid black;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="waveformCanvas" width="400" height="150"></canvas>
+<canvas id="rmsCanvas" width="100" height="150"></canvas>
+<canvas id="spectrogramCanvas" width="400" height="150"></canvas> <!-- New canvas -->
+<input type="file" id="audioFileInput" accept="audio/*"> <!-- New file input -->
+
+<script>
+  // --- Audio Setup ---
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioContext.createAnalyser();
+  const sampleRate = audioContext.sampleRate;
+  const windowSizeSeconds = 0.0; // 20ms, to have >= 1024 samples
+  let bufferSize = Math.round(sampleRate * windowSizeSeconds);
+
+    // Ensure bufferSize is greater than or equal to 1024
+  if (bufferSize < 1024) {
+    bufferSize = 1024;
+    //Optionally, inform the user about adjustment.
+    console.warn(`Buffer size adjusted to ${bufferSize} for FFT requirements.`);
+  }
+  if (bufferSize < 2048){ //For better resolution
+    bufferSize = 2048;
+  }
+
+  analyser.fftSize = bufferSize; // Match fftSize to bufferSize (or use a larger power of 2)
+  analyser.smoothingTimeConstant = .5; // No smoothing
+
+  const buffer = new Float32Array(bufferSize);
+  const frequencyData = new Float32Array(analyser.frequencyBinCount); // For getFloatFrequencyData
+
+  // --- Visualization Setup ---
+  const waveformCanvas = document.getElementById('waveformCanvas');
+  const waveformCtx = waveformCanvas.getContext('2d');
+  const rmsCanvas = document.getElementById('rmsCanvas');
+  const rmsCtx = rmsCanvas.getContext('2d');
+  const spectrogramCanvas = document.getElementById('spectrogramCanvas'); // New canvas
+  const spectrogramCtx = spectrogramCanvas.getContext('2d'); // New context
+
+    // --- Helper Functions ---
+    function hanningWindow(data) {
+        const n = data.length;
+        const windowedData = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const multiplier = 0.5 * (1 - Math.cos(2 * Math.PI * i / (n - 1)));
+            windowedData[i] = data[i] * multiplier;
+        }
+        return windowedData;
+    }
+
+  function calculateRMS(data) {
+      let sumOfSquares = 0;
+      for (const amplitude of data) {
+          sumOfSquares += amplitude * amplitude;
+      }
+      return Math.sqrt(sumOfSquares / data.length);
+  }
+
+  function calculateZCR(data) {
+      let zeroCrossings = 0;
+      for (let i = 1; i < data.length; i++) {
+          if ((data[i] >= 0 && data[i - 1] < 0) || (data[i] < 0 && data[i - 1] >= 0)) {
+              zeroCrossings++;
+          }
+      }
+      return zeroCrossings / (data.length - 1);
+  }
+
+  // --- Drawing Functions ---
+
+    function drawWaveform() {
+      waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+      waveformCtx.beginPath();
+      waveformCtx.strokeStyle = 'blue';
+
+      const sliceWidth = waveformCanvas.width / bufferSize;
+      let x = 0;
+
+      for (let i = 0; i < bufferSize; i++) {
+          const y = (buffer[i] + 1) / 2 * waveformCanvas.height; // Scale to canvas
+          waveformCtx.lineTo(x, y);
+          x += sliceWidth;
+      }
+
+      waveformCtx.stroke();
+      drawZCR(); // Draw on top of waveform
+  }
+
+
+function drawRMS() {
+    rmsCtx.clearRect(0, 0, rmsCanvas.width, rmsCanvas.height);
+    const rms = calculateRMS(buffer);
+    const barHeight = rms * rmsCanvas.height * 3.; // Scale to canvas
+
+    rmsCtx.fillStyle = 'red';
+    rmsCtx.fillRect(0, rmsCanvas.height - barHeight, rmsCanvas.width, barHeight);
+}
+
+
+function drawZCR(){ // ZCR on the waveform canvas.
+    const zcr = calculateZCR(buffer);
+    // We use waveform canvas to visualize ZCR, in top of waveform.
+    waveformCtx.beginPath();
+    waveformCtx.strokeStyle = 'green';
+    waveformCtx.moveTo(0, (1-zcr) * waveformCanvas.height);
+    waveformCtx.lineTo(waveformCanvas.width, (1-zcr) * waveformCanvas.height);
+    waveformCtx.stroke();
+}
+
+  function drawSpectrogram() {
+    spectrogramCtx.clearRect(0, 0, spectrogramCanvas.width, spectrogramCanvas.height);
+
+    analyser.getFloatFrequencyData(frequencyData); // Get data in dB
+
+
+    const numBuckets = 7; // Number of buckets
+    const bucketSize = Math.floor(frequencyData.length / numBuckets);
+    const barWidth = spectrogramCanvas.width / numBuckets;
+
+    for (let i = 0; i < numBuckets; i++) {
+      const startIdx = i * bucketSize;
+      const endIdx = startIdx + bucketSize;
+      const bucketData = frequencyData.slice(startIdx, endIdx);
+
+      // Calculate average value for the bucket
+      const avgValue = bucketData.reduce((sum, value) => sum + value, 0) / bucketData.length;
+      const normalizedValue = (avgValue + 100) / 100; // Normalize to [0, 1]
+      const hue = (1 - normalizedValue) * 240; // Blue (low) to Red (high) Hue values are 0-360.
+      spectrogramCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+
+      // Calculate bar height and position
+      const barHeight = normalizedValue * spectrogramCanvas.height * 2.;
+      const x = i * barWidth;
+      const y = spectrogramCanvas.height - barHeight;
+
+      spectrogramCtx.fillRect(x, y, barWidth, barHeight);
+    }
+  }
+
+  function updateVisualization() {
+      analyser.getFloatTimeDomainData(buffer);
+
+      // Apply Hanning window *before* the FFT
+      const windowedBuffer = hanningWindow(buffer);
+
+      //Copy windowed data to analyser.
+      // AnalyserNode doesn't have a way to directly set input data,
+      // we achieve this indirectly by connecting a bufferSource.
+      const bufferSource = audioContext.createBufferSource();
+      const audioBuffer = audioContext.createBuffer(1, bufferSize, sampleRate);
+      audioBuffer.getChannelData(0).set(windowedBuffer);
+      bufferSource.buffer = audioBuffer;
+      const gainNode = audioContext.createGain(); //Prevent audio feedback
+      gainNode.gain.value = 0;
+      bufferSource.connect(gainNode);
+      gainNode.connect(analyser);
+      bufferSource.start(0); // Important, or analyser won't have new data.
+
+
+      drawWaveform();
+      drawRMS();
+      drawSpectrogram(); // Draw the spectrogram
+
+      requestAnimationFrame(updateVisualization);
+  }
+
+  function handleFileInput(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        audioContext.decodeAudioData(e.target.result, function(buffer) {
+          const bufferSource = audioContext.createBufferSource();
+          bufferSource.buffer = buffer;
+          bufferSource.connect(analyser);
+          bufferSource.connect(audioContext.destination); // Connect to destination for playback
+          bufferSource.start(0);
+          updateVisualization(); // Start the visualization loop
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  }
+
+  function loadAndPlayAudio(url) {
+    fetch(url)
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        const bufferSource = audioContext.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(analyser);
+        // bufferSource.connect(audioContext.destination); // Connect to destination for playback
+        bufferSource.start(0);
+        updateVisualization(); // Start the visualization loop
+      })
+      .catch(err => console.error("Error loading audio file:", err));
+  }
+
+  document.getElementById('audioFileInput').addEventListener('change', handleFileInput);
+
+  // Autoload specific file
+  const specificFileUrl = 'guitar-electro-sport-trailer-115571.mp3'; // Replace with the actual file path
+  loadAndPlayAudio(specificFileUrl);
+
+</script>
+
+</body>
+</html>

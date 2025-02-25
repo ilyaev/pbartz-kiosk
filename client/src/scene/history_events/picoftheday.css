@@ -1,0 +1,33 @@
+.pic-of-the-day-container {
+    /* display: flex; */
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    height: 98%;
+    width: 98%;
+    margin: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* max-width: 400px; */
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.pic-of-the-day-image {
+    /* max-width: 100%; */
+    float: left;
+    max-height: 50%;
+    max-width: 60%;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+}
+
+.pic-of-the-day-description {
+    font-size: 2.3em;
+    color: #333;
+    text-align: left;
+    line-height: 1.5;
+}
