@@ -3,9 +3,27 @@ from socketserver import ThreadingMixIn
 import threading
 import json
 import time
-from audio_processor import AudioProcessor
+from smbus2 import SMBus
+
+I2C_BUS = 1
+BH1750_ADDR = 0x23  # Default address (0x5C if ADDR is pulled high)
 
 class StreamHandler(BaseHTTPRequestHandler):
+
+    def read_light(self, bus, address):
+        try:
+            # Start one-time measurement in high-res mode
+            bus.write_byte(address, 0x20)
+            time.sleep(0.18)  # Wait for measurement (up to 180ms)
+
+            # Read 2 bytes (MSB first)
+            data = bus.read_i2c_block_data(address, 0x00, 2)
+            lux = (data[0] << 8 | data[1]) / 1.2
+            return lux
+        except OSError as e:
+            print(f"Error: {e}")
+            return None
+
     def do_GET(self):
         if self.path == '/sensors':
             self.send_response(200)
@@ -15,57 +33,16 @@ class StreamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    motion_data = 1
-                    light_data = 1.2
+                    motion_data = -1
+                    light_data = -1
+                    if bus is not None:
+                       lux = self.read_light(bus, BH1750_ADDR)
+                       if lux is not None:
+                           light_data = lux
                     self.wfile.write(f"data: {float(motion_data)},{float(light_data)}\n\n".encode())
                     time.sleep(1.)
             except Exception as e:
                 print(f"Client disconnected: {e}")
-        if self.path == '/stream':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/event-stream')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            try:
-                while True:
-                    rms_value = processor.get_rms()
-                    avg_rms_value = processor.current_avg_rms
-                    # avg_rms_db_value = processor.current_avg_rms_db
-                    if rms_value is not None:
-                        # self.wfile.write(f"data: {json.dumps({'rms': float(rms_value), 'arms': float(avg_rms_value)})}\n\n".encode())
-                        self.wfile.write(f"data: {float(avg_rms_value)},{float(rms_value)}\n\n".encode())
-                    time.sleep(0.01)
-            except Exception as e:
-                print(f"Client disconnected: {e}")
-        elif self.path == '/start':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            if not processor.running:
-                processor.running = True
-                processor_thread = threading.Thread(target=processor.start)
-                processor_thread.start()
-            self.wfile.write(b'AudioProcessor started')
-        elif self.path == '/stop':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            if processor.running:
-                processor.stop()
-            self.wfile.write(b'AudioProcessor stopped')
-        elif self.path == '/status':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            status = {
-                'running': processor.running,
-                'current_rms': float(processor.get_rms()) if processor.get_rms() is not None else None
-            }
-            self.wfile.write(json.dumps(status).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -74,14 +51,16 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
 def run_server():
-    server_address = ('', 8081)
+    server_address = ('', 8083)
     httpd = ThreadedHTTPServer(server_address, StreamHandler)
-    print('Starting server on port 8081...')
+    print('Starting server on port 8083...')
     httpd.serve_forever()
 
 if __name__ == "__main__":
-    processor = AudioProcessor()
-    # processor_thread = threading.Thread(target=processor.start)
-    # processor_thread.start()
-
+    try:
+        bus = SMBus(I2C_BUS)
+        print("Connected to I2C bus.")
+    except Exception as e:
+        bus = None
+        print(f"Failed to connect to I2C bus: {e}")
     run_server()

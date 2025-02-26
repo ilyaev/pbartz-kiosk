@@ -84,6 +84,10 @@ class SpotifyScene extends Component<Props, State> {
       isMounted = true;
       this.loadData();
     }
+    if (changeInterval) {
+      clearInterval(changeInterval);
+    }
+    nextChange = Date.now() + SPOTIFY.albumCoverDuration;
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
         this.setState({ equlizer: !this.state.equlizer });
@@ -105,10 +109,12 @@ class SpotifyScene extends Component<Props, State> {
     )
       .then((res) => res.json())
       .then((data) => data.responseObject);
+
     if (!myState.is_playing) {
       return;
     }
     this.setState({ player: myState });
+
     nextLoad = setTimeout(() => {
       this.setState({ track: {} as TrackData });
       this.loadData();
@@ -237,6 +243,7 @@ class SpotifyScene extends Component<Props, State> {
           fontSize: "1.8em",
           zIndex: 100001,
         }}
+        key={"header"}
       >
         {this.state.track.quotes && (
           <Ticker
@@ -278,8 +285,10 @@ class SpotifyScene extends Component<Props, State> {
   }
 
   renderFooter() {
+    console.log("renderFooter");
     return (
       <div
+        key={"footer"}
         style={{
           position: "absolute",
           bottom: 0,

@@ -34,10 +34,18 @@ interface State {
   index: number;
 }
 
+let globalInterval: number = 0;
+
 export class Ticker extends Component<Props, State> {
   state = {
     index: 0,
   };
+
+  componentWillUnmount(): void {
+    if (globalInterval) {
+      clearTimeout(globalInterval);
+    }
+  }
 
   render() {
     const parts = (this.props.direction || TickerDirection.LeftRight).split(
@@ -121,7 +129,7 @@ export class Ticker extends Component<Props, State> {
               }}
               easeType="ease-in-out"
               onComplete={() => {
-                setTimeout(() => {
+                globalInterval = setTimeout(() => {
                   let nextIndex = this.state.index + 1;
                   if (nextIndex >= this.props.items.length) {
                     nextIndex = 0;

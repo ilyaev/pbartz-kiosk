@@ -52,6 +52,8 @@ class Mic extends Component<Props, State> {
     }
     if (this.audioContext) {
       this.audioContext.close();
+      this.source?.disconnect();
+      this.analyser?.disconnect();
     }
   }
 

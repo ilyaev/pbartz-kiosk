@@ -34,11 +34,6 @@ void main() {
     float ds,dt;
     float n;
     vec2 id;
-    float bass;
-    float middle;
-    float bar;
-    float barValue;
-
     for(int i = 0 ; i < MAX_STEPS ; i++) {
         vec3 p = ro + rd * ds;
 
@@ -51,24 +46,16 @@ void main() {
         vec3 q1 = p - rc1 * clamp(round(p/rc1), -l, l);
         id = round(p/rc1).xy;
 
-        bar = floor((abs(id.x) / cells.x) * 7.);
-        barValue = bars[int(bar)];
 
-
-        middle = step(length(id), 60.*u_radius);
+        float middle = step(length(id), 60.*u_radius);
 
         q1.z += length(id + vec2(sin(iTime)*4.)) * abs(bars[6]) * u_radius * 2. * middle *.1;
 
-        // q1.z += sin(id.y/10. + iTime*bars[5]*3.)*.03;
+        float radius = 0.02 + middle * .005;
 
-        float radius = 0.02;// + middle * .005;
-
-        bass = step(length(id), 20.*abs(bars[6]))*.02;
-
-        radius += bass;
+        radius += step(length(id), 20.*abs(bars[6]))*.02;
 
         dt = length(q1) - radius;
-
         ds += dt * .9;
         if (abs(dt) < MIN_DISTANCE || dt > MAX_DISTANCE) {
             break;
@@ -78,9 +65,10 @@ void main() {
     if (dt < MIN_DISTANCE) {
         vec3 scol = vec3(0.9, 0.3, .1);
 
+        float bar = floor((abs(id.x) / cells.x) * 7.);
+        float barValue = bars[int(bar)];
         col += scol * (1. - step(barValue*160., abs(id.y)));
         col += 4.1/pow(abs(id.y*2. - 333.*barValue), .9 + u_radius) * scol;
-        // col += (1. - step(bass, 0.)) * vec3(.1, .9, .3) * 11.1/pow(length(id), 1.8);
     }
 
     gl_FragColor = vec4(col, 1.);

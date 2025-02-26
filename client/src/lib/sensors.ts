@@ -5,7 +5,7 @@ export class ServerSensors {
 
   constructor(params: { callback: (data: number[]) => void }) {
     setTimeout(() => {
-      this.eventSource!.onmessage = (event) => {
+      this.eventSource.onmessage = (event) => {
         const items = event.data
           .replace("data: ", "")
           .trim()

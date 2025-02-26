@@ -106,6 +106,7 @@ class ScreenViz extends Component<Props> {
           width: "100%",
           height: "100%",
           position: "absolute",
+          backgroundColor: "black",
           bottom: 0,
           right: 0,
         }}

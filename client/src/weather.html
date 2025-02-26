@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Weather Cards</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            width: 250px;
+            height: 350px;
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        h3 {
+            color: white;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+
+        /* Wind Animation */
+        .wind .cloud {
+            position: absolute;
+            width: 60px;
+            height: 30px;
+            background: #555;
+            border-radius: 15px;
+            animation: moveCloud 8s linear infinite;
+        }
+
+        .wind .cloud::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: #555;
+            border-radius: 50%;
+            top: -10px;
+            left: 10px;
+        }
+
+        /* Rain Animation */
+        .rain .drop {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: #00a3e0;
+            animation: fall 1s linear infinite;
+        }
+
+        /* Sun Animation */
+        .sun .sun-core {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #ffd700;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px #ffd700;
+        }
+
+        .sun .ray {
+            position: absolute;
+            background: #ffd700;
+            width: 4px;
+            height: 30px;
+            left: 50%;
+            top: 50%;
+            transform-origin: bottom center;
+            animation: rotateRays 12s linear infinite;
+        }
+
+        /* Snow Animation */
+        .snow .flake {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: fall 3s linear infinite;
+        }
+
+        /* Animations */
+        @keyframes moveCloud {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(300%); }
+        }
+
+        @keyframes fall {
+            from { transform: translateY(-100px); }
+            to { transform: translateY(350px); }
+        }
+
+        @keyframes rotateRays {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .controls {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #00a3e0;
+            color: white;
+        }
+
+        button:hover {
+            background: #0087c0;
+        }
+        /* Rain Animation with varying speeds */
+        .rain .drop {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: #00a3e0;
+            animation: fall linear infinite;
+        }
+
+        /* Snow Animation with varying speeds */
+        .snow .flake {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: fall linear infinite;
+        }
+
+        /* Animations */
+        @keyframes fall {
+            from { transform: translateY(-100px); }
+            to { transform: translateY(350px); }
+        }
+
+        /* Wind Animation */
+        .wind .cloud {
+            position: absolute;
+            background: #555;
+            border-radius: 15px;
+            animation: moveCloud linear infinite;
+        }
+
+        .wind .cloud::after {
+            content: '';
+            position: absolute;
+            background: inherit;
+            border-radius: 50%;
+        }
+
+        @keyframes moveCloud {
+            from { transform: translateX(-150%); }
+            to { transform: translateX(150%); }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="activateWeather('wind')">Wind</button>
+        <button onclick="activateWeather('rain')">Rain</button>
+        <button onclick="activateWeather('sun')">Sun</button>
+        <button onclick="activateWeather('snow')">Snow</button>
+    </div>
+
+    <div class="container">
+        <div class="card wind">
+            <h3>Wind</h3>
+            <div class="weather-container"></div>
+        </div>
+        <div class="card rain">
+            <h3>Rain</h3>
+            <div class="weather-container"></div>
+        </div>
+        <div class="card sun">
+            <h3>Sun</h3>
+            <div class="weather-container"></div>
+        </div>
+        <div class="card snow">
+            <h3>Snow</h3>
+            <div class="weather-container"></div>
+        </div>
+    </div>
+
+    <script>
+        function createWeatherElements() {
+            // Create wind clouds
+            // Create clouds with parallax effect
+            const windContainer = document.querySelector('.wind .weather-container');
+            const cloudLayers = [
+                { count: 4, size: 40, speed: 20, color: '#444', yStart: 20 },  // Background clouds
+                { count: 4, size: 60, speed: 15, color: '#555', yStart: 80 }, // Mid-ground clouds
+                { count: 3, size: 80, speed: 10, color: '#666', yStart: 140 } // Foreground clouds
+            ];
+
+            cloudLayers.forEach(layer => {
+                for (let i = 0; i < layer.count; i++) {
+                    const cloud = document.createElement('div');
+                    cloud.className = 'cloud';
+
+                    // Set cloud properties based on layer
+                    cloud.style.width = `${layer.size}px`;
+                    cloud.style.height = `${layer.size/2}px`;
+                    cloud.style.background = layer.color;
+                    cloud.style.top = `${layer.yStart + (i * 60)}px`;
+                    cloud.style.animation = `moveCloud ${layer.speed}s linear infinite`;
+                    cloud.style.animationDelay = `${Math.random() * layer.speed}s`;
+
+                    // Create cloud puff
+                    cloud.innerHTML = '<div class="cloud-puff"></div>';
+                    const puff = cloud.querySelector('.cloud-puff');
+                    puff.style.width = `${layer.size/2}px`;
+                    puff.style.height = `${layer.size/2}px`;
+                    puff.style.top = `-${layer.size/4}px`;
+                    puff.style.left = `${layer.size/6}px`;
+
+                    windContainer.appendChild(cloud);
+                }
+            });
+
+            // Create raindrops with parallax effect
+            const rainContainer = document.querySelector('.rain .weather-container');
+            for (let i = 0; i < 40; i++) {  // Increased number of drops
+                const drop = document.createElement('div');
+                drop.className = 'drop';
+                drop.style.left = `${Math.random() * 100}%`;
+
+                // Varying speeds and sizes for parallax
+                const speed = 0.5 + Math.random() * 1; // Between 0.5s and 1.5s
+                const size = 2 + Math.random() * 2;    // Between 2px and 4px height
+
+                drop.style.animation = `fall ${speed}s linear infinite`;
+                drop.style.height = `${size}px`;
+                drop.style.animationDelay = `${Math.random() * 1}s`;
+                rainContainer.appendChild(drop);
+            }
+
+
+            // Create sun rays
+            const sunContainer = document.querySelector('.sun .weather-container');
+            sunContainer.innerHTML = '<div class="sun-core"></div>';
+            for (let i = 0; i < 8; i++) {  // Changed to 8 rays
+                const ray = document.createElement('div');
+                ray.className = 'ray';
+                ray.style.transform = `rotate(${i * 45}deg)`;  // Adjusted rotation to 45 degrees
+                sunContainer.appendChild(ray);
+            }
+
+            // Create snowflakes with parallax effect
+            const snowContainer = document.querySelector('.snow .weather-container');
+            for (let i = 0; i < 60; i++) {  // Increased number of flakes
+                const flake = document.createElement('div');
+                flake.className = 'flake';
+                flake.style.left = `${Math.random() * 100}%`;
+
+                // Varying speeds and sizes for parallax
+                const speed = 2 + Math.random() * 3; // Between 2s and 5s
+                const size = 2 + Math.random() * 3;  // Between 2px and 5px
+
+                flake.style.animation = `fall ${speed}s linear infinite`;
+                flake.style.width = `${size}px`;
+                flake.style.height = `${size}px`;
+                flake.style.animationDelay = `${Math.random() * 3}s`;
+                snowContainer.appendChild(flake);
+            }
+        }
+
+        function activateWeather(weatherType) {
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`.${weatherType}`).classList.add('active');
+        }
+
+        // Initialize weather elements on load
+        window.addEventListener('load', () => {
+            createWeatherElements();
+            activateWeather('wind');
+        });
+    </script>
+</body>
+</html>
