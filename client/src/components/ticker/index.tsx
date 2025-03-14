@@ -32,18 +32,31 @@ interface Props {
 
 interface State {
   index: number;
+  globalInterval: number;
 }
-
-let globalInterval: number = 0;
 
 export class Ticker extends Component<Props, State> {
   state = {
     index: 0,
+    globalInterval: 0,
   };
 
   componentWillUnmount(): void {
-    if (globalInterval) {
-      clearTimeout(globalInterval);
+    if (this.state.globalInterval) {
+      clearTimeout(this.state.globalInterval);
+    }
+  }
+
+  onComplete() {
+    if (!this.state.globalInterval) {
+      const globalInterval = setTimeout(() => {
+        let nextIndex = this.state.index + 1;
+        if (nextIndex >= this.props.items.length) {
+          nextIndex = 0;
+        }
+        this.setState({ index: nextIndex, globalInterval: 0 });
+      }, this.props.pause || 1000);
+      this.setState({ globalInterval });
     }
   }
 
@@ -128,15 +141,7 @@ export class Ticker extends Component<Props, State> {
                 opacity: 1,
               }}
               easeType="ease-in-out"
-              onComplete={() => {
-                globalInterval = setTimeout(() => {
-                  let nextIndex = this.state.index + 1;
-                  if (nextIndex >= this.props.items.length) {
-                    nextIndex = 0;
-                  }
-                  this.setState({ index: nextIndex });
-                }, this.props.pause || 1000);
-              }}
+              onComplete={this.onComplete.bind(this)}
             >
               <div
                 style={{

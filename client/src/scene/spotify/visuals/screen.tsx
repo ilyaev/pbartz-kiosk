@@ -3,10 +3,13 @@ import * as THREE from "three";
 import shaderCircles from "./shaders/eq3d.glsl";
 import generalVertex from "./shaders/general_vs.glsl";
 
+const SHOW_FPS = false;
+
 interface Props {
   rms?: number;
   zcr?: number;
   bars?: number[];
+  fps?: number;
 }
 
 class ScreenViz extends Component<Props> {
@@ -100,17 +103,33 @@ class ScreenViz extends Component<Props> {
 
   render() {
     return (
-      <div
-        ref={(ref) => (this.mount = ref)}
-        style={{
-          width: "100%",
-          height: "100%",
-          position: "absolute",
-          backgroundColor: "black",
-          bottom: 0,
-          right: 0,
-        }}
-      />
+      <>
+        <div
+          ref={(ref) => (this.mount = ref)}
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            backgroundColor: "black",
+            bottom: 0,
+            right: 0,
+          }}
+        />
+        {SHOW_FPS ? (
+          <div
+            style={{
+              position: "absolute",
+              top: "15%",
+              left: 0,
+              color: "white",
+              zIndex: 100000,
+              padding: "10px",
+            }}
+          >
+            FPS: {parseInt(this.props.fps + "" || "0")}
+          </div>
+        ) : undefined}
+      </>
     );
   }
 }

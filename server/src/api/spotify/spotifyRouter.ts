@@ -109,6 +109,10 @@ spotifyRouter.get("/track", async (req: Request, res: Response) => {
       .then((buffer) => Buffer.from(buffer).toString("base64"));
 
     const schema = z.object({
+      tempo_bpm: z
+        .number()
+        .optional()
+        .describe(`Tempo of the song "${track} by "${artist}" in BPM`),
       image: z.object({
         moods: z.array(z.string()).describe("Moods of the image"),
         description: z
@@ -161,14 +165,16 @@ spotifyRouter.get("/track", async (req: Request, res: Response) => {
       "No context, use your own data";
 
     const prompt = `There is track playing on audio player.
-  It's ${track} by ${artist}. Album is ${album}.
+  It's "${track}" by "${artist}". Album is "${album}".
+  What is the tempo for song "${track}" by "${artist}"? return it in 'tempo_bpm' field.
   Here is the album cover in attached image.
   Analyze the image and provide description of the image, guess the moods (maximum 3) of the image.
   primary and secondary colors, background color of image,
   primary and secondary colors to write on overlay for best visibility. Provide color and opacity of overlay.
   Also provide some quotes (5-10) from literature, movies or philosophy to accompany this track to show on screen (based on context and image description).
   Provide some interesting passages from literature relevant to context.
-  Finally provide some interesting facts about the artist or the track. Return JSON with all this information. JSON schema: ${JSON.stringify(
+
+  Finally, provide some interesting facts about the artist or the track. Return JSON with all this information. JSON schema: ${JSON.stringify(
     jsonSchema
   )}
 

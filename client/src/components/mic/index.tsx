@@ -28,6 +28,8 @@ class Mic extends Component<Props, State> {
   private frequencyData: Float32Array<ArrayBuffer> = new Float32Array(0);
   private sampleRate: number = 0;
   private bufferSize: number = 0;
+  private lastFrameTime: number = performance.now();
+  private fps: number = 0;
 
   constructor(props: Props) {
     super(props);
@@ -76,7 +78,7 @@ class Mic extends Component<Props, State> {
         }
 
         this.analyser.fftSize = this.bufferSize; // Match fftSize to bufferSize (or use a larger power of 2)
-        this.analyser.smoothingTimeConstant = 0.85; // No smoothing
+        this.analyser.smoothingTimeConstant = 0.9; // No smoothing
 
         this.buffer = new Float32Array(this.bufferSize);
         this.frequencyData = new Float32Array(this.analyser.frequencyBinCount); // For getFloatFrequencyData
@@ -93,6 +95,11 @@ class Mic extends Component<Props, State> {
   };
 
   animate = () => {
+    const now = performance.now();
+    const delta = now - this.lastFrameTime;
+    this.fps = 1000 / delta;
+    this.lastFrameTime = now;
+
     if (this.analyser) {
       this.analyser.getFloatTimeDomainData(this.buffer);
 
@@ -147,7 +154,12 @@ class Mic extends Component<Props, State> {
   render() {
     const { rms, zcr, bars } = this.state;
     return React.Children.map(this.props.children, (child) =>
-      React.cloneElement(child as React.ReactElement, { rms, zcr, bars })
+      React.cloneElement(child as React.ReactElement, {
+        rms,
+        zcr,
+        bars,
+        fps: this.fps,
+      })
     );
   }
 }

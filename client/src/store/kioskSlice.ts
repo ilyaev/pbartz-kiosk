@@ -25,13 +25,6 @@ const initialState: KioskState = {
     Scene.Bias,
     Scene.Spotify,
   ],
-  // scenes: [Scene.Finance],
-  // scenes: [Scene.APOD, Scene.Spotify],
-  // scenes: [Scene.APOD],
-  // scenes: [Scene.HistoryEvents],
-  // scenes: [Scene.Spotify],
-  // scenes: [Scene.Fallacy],
-  // scenes: [Scene.Bias],
   lastMotion: 1,
   lastLight: 1,
 };

@@ -1,4 +1,4 @@
-import { Component } from "react";
+import React, { Component } from "react";
 import { connect } from "react-redux";
 import { RootState } from "../../store";
 import { KioskState } from "../../store/kioskSlice";
@@ -8,13 +8,23 @@ import { Ticker, TickerDirection } from "@/components/ticker";
 import ColorConverter from "string-color-converter";
 import { getPrimarySecondaryForBackground } from "@/lib/colors";
 import Mic from "@/components/mic";
-import ScreenViz from "./visuals/screen";
+import EQ3D from "./visuals/eq3d";
+import Stars from "./visuals/stars";
+import CityGrid from "./visuals/city";
+import SpheresPool from "./visuals/pool";
 
 let nextLoad: number;
 let changeInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
+const DEBUG = false;
+
+const AvailableVisuals = DEBUG
+  ? [SpheresPool]
+  : [Stars, CityGrid, SpheresPool, EQ3D];
+
 interface TrackData {
+  tempo_bpm?: number;
   facts: string[];
   quotes: string[];
   image: {
@@ -57,6 +67,7 @@ interface State {
   player: ExtendedCurrentlyPlaying;
   track: TrackData;
   equlizer: boolean;
+  vizIndex: number;
 }
 
 let isMounted = false;
@@ -66,6 +77,7 @@ class SpotifyScene extends Component<Props, State> {
     player: {} as ExtendedCurrentlyPlaying,
     track: {} as TrackData,
     equlizer: false,
+    vizIndex: 1,
   };
 
   colors?: {
@@ -90,7 +102,10 @@ class SpotifyScene extends Component<Props, State> {
     nextChange = Date.now() + SPOTIFY.albumCoverDuration;
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
-        this.setState({ equlizer: !this.state.equlizer });
+        this.setState({
+          equlizer: !this.state.equlizer,
+          vizIndex: Math.floor(Math.random() * AvailableVisuals.length),
+        });
         nextChange =
           Date.now() +
           (this.state.equlizer
@@ -115,10 +130,15 @@ class SpotifyScene extends Component<Props, State> {
     }
     this.setState({ player: myState });
 
+    let tout = myState.item.duration_ms - (myState.progress_ms || 0) + 1000;
+    if (tout === 1000) {
+      tout = 30000;
+    }
+
     nextLoad = setTimeout(() => {
       this.setState({ track: {} as TrackData });
       this.loadData();
-    }, myState.item.duration_ms - (myState.progress_ms || 0) + 1000);
+    }, tout);
 
     await this.loadTrackData(myState.item);
     isMounted = false;
@@ -143,9 +163,14 @@ class SpotifyScene extends Component<Props, State> {
         album
       )}`
     ).then((res) => res.json());
-    this.setState({
-      track: record.responseObject.response,
-    });
+
+    if (!record.success) {
+      this.setState({ track: {} as TrackData });
+    } else {
+      this.setState({
+        track: record.responseObject.response,
+      });
+    }
   };
 
   componentWillUnmount(): void {
@@ -225,10 +250,15 @@ class SpotifyScene extends Component<Props, State> {
     if (!this.state.equlizer) {
       return null;
     }
-    const volume = this.state.player.device.volume_percent;
+    // const volume = this.state.player.device.volume_percent;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const VisualComponent: React.ComponentType<any> =
+      AvailableVisuals[this.state.vizIndex];
+
     return (
-      <Mic magnitude={3 + (100 - volume) / 100}>
-        <ScreenViz />
+      <Mic magnitude={3}>
+        <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
       </Mic>
     );
   }
@@ -285,7 +315,6 @@ class SpotifyScene extends Component<Props, State> {
   }
 
   renderFooter() {
-    console.log("renderFooter");
     return (
       <div
         key={"footer"}

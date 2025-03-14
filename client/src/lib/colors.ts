@@ -134,7 +134,7 @@ export function increaseContrast(
 
   for (let i = 0; i < 100; i++) {
     const newL = shouldDarken ? bestHsl.l - step : bestHsl.l + step;
-    if (newL < 0 || newL > 70) break;
+    if (newL < 0 || newL > 85) break;
 
     const newRgb = hslToRgb(bestHsl.h, bestHsl.s, newL);
     const newLum = calculateLuminance(newRgb.r, newRgb.g, newRgb.b);

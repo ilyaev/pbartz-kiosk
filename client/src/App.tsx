@@ -5,6 +5,11 @@ import { setLastLigtMotion } from "./store/kioskSlice";
 import DefaultDashboard from "./scene";
 import ServerSensors from "./lib/sensors";
 import { Dispatch } from "@reduxjs/toolkit";
+// import ThreeScene from "./scene/spotify/visuals/stars";
+// import Wave from "./scene/spotify/visuals/wave";
+// import StarFly from "./scene/spotify/visuals/starfly";
+// import CubeGrid from "./scene/spotify/visuals/city";
+// import Life from "./scene/spotify/visuals/life";
 
 let sensors: ServerSensors | null = null;
 
@@ -34,6 +39,11 @@ class App extends Component<Props> {
     return (
       <>
         <DefaultDashboard />
+        {/* <ThreeScene /> */}
+        {/* <Wave /> */}
+        {/* <StarFly bars={[1, 0, 0, 0, 0, 0, 0]} rms={0.1} tempo={100} /> */}
+        {/* <CubeGrid /> */}
+        {/* <Life /> */}
       </>
     );
   }

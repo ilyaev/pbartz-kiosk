@@ -1,10 +1,19 @@
 wlr-randr --output DSI-2 --off # turn off monitor
 wlr-randr --output DSI-2 --on # turn on monitor
 
-chromium-browser --kiosk --start-fullscreen --incognito "https://www.example.com" # run chromium fullscreen
+chromium-browser --kiosk --start-fullscreen --incognito "http://localhost:5173/" # run chromium fullscreen
 
 
 Weather API:
 
 https://api.weather.gov/gridpoints/MTR/101,101/forecast/hourly
 https://weather-gov.github.io/api/general-faqs
+
+
+Display brighness
+
+sudo sh -c 'echo 8 > /sys/class/backlight/11-0045/brightness'
+cat /sys/class/backlight/11-0045/actual_brightness
+cat /sys/class/backlight/11-0045/max_brightness
+
+ls /sys/class/backlight/
