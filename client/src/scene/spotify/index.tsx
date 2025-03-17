@@ -68,6 +68,10 @@ interface State {
   track: TrackData;
   equlizer: boolean;
   vizIndex: number;
+  cover: string;
+  cover1: string;
+  cover2: string;
+  currentCover: number;
 }
 
 let isMounted = false;
@@ -78,6 +82,10 @@ class SpotifyScene extends Component<Props, State> {
     track: {} as TrackData,
     equlizer: false,
     vizIndex: 1,
+    cover: "",
+    cover1: "",
+    cover2: "",
+    currentCover: 0,
   };
 
   colors?: {
@@ -90,6 +98,8 @@ class SpotifyScene extends Component<Props, State> {
     overlayOpacity: number;
   };
   textColors?: { primary: string; secondary: string };
+  repeats: number = 0;
+  coverInterval: number = 0;
 
   componentDidMount(): void {
     if (!isMounted) {
@@ -125,23 +135,69 @@ class SpotifyScene extends Component<Props, State> {
       .then((res) => res.json())
       .then((data) => data.responseObject);
 
-    if (!myState.is_playing) {
+    if (!myState.is_playing || myState.device.name !== SPOTIFY.device) {
       return;
     }
-    this.setState({ player: myState });
+    this.setState({ player: myState, cover: "", cover2: "" });
 
-    let tout = myState.item.duration_ms - (myState.progress_ms || 0) + 1000;
-    if (tout === 1000) {
-      tout = 30000;
-    }
+    const tout = myState.item.duration_ms - (myState.progress_ms || 0) + 1000;
+    // if (tout === 1000) {
+    //   tout = 30000;
+    // }
 
     nextLoad = setTimeout(() => {
       this.setState({ track: {} as TrackData });
       this.loadData();
     }, tout);
-
+    if (this.coverInterval) {
+      clearInterval(this.coverInterval);
+    }
     await this.loadTrackData(myState.item);
+    this.repeats = 0;
+    await this.loadCoverData(myState.item);
     isMounted = false;
+  };
+
+  loadCoverData = async (item: ExtendedCurrentlyPlaying["item"]) => {
+    if (!item) {
+      return;
+    }
+    const trackId = item.id;
+    const imageUrl = item.album.images[0].url;
+
+    const record = await fetch(
+      `${SERVER_URL}spotify/cover?trackId=${encodeURIComponent(
+        trackId
+      )}&imageUrl=${encodeURIComponent(imageUrl)}&animation=true`
+    ).then((res) => res.json());
+
+    if (
+      record.success &&
+      record.responseObject &&
+      record.responseObject.imageUrl
+    ) {
+      this.repeats = 0;
+      this.setState({
+        cover: record.responseObject.imageUrl,
+        cover1: record.responseObject.imageUrl,
+        cover2: record.responseObject.imageUrl2 || "",
+        currentCover: 1,
+      });
+      this.coverInterval = setInterval(() => {
+        if (this.state.currentCover === 1) {
+          this.setState({ cover: this.state.cover2, currentCover: 2 });
+        }
+        if (this.state.currentCover === 2) {
+          this.setState({ cover: this.state.cover1, currentCover: 1 });
+        }
+      }, 1000);
+    } else {
+      this.setState({ cover: "", cover2: "", cover1: "" });
+      this.repeats++;
+      if (this.repeats < 4) {
+        this.loadCoverData(item);
+      }
+    }
   };
 
   loadTrackData = async (item: ExtendedCurrentlyPlaying["item"]) => {
@@ -165,10 +221,18 @@ class SpotifyScene extends Component<Props, State> {
     ).then((res) => res.json());
 
     if (!record.success) {
-      this.setState({ track: {} as TrackData });
+      this.setState({ track: {} as TrackData, cover: "", cover2: "" });
     } else {
+      const track = record.responseObject.response;
+      if (track.passages) {
+        track.quotes = track.quotes
+          .concat(track.passages)
+          .sort(() => 0.5 - Math.random());
+      }
       this.setState({
-        track: record.responseObject.response,
+        track,
+        cover: "",
+        cover2: "",
       });
     }
   };
@@ -237,10 +301,13 @@ class SpotifyScene extends Component<Props, State> {
           flexDirection: "column",
           height: "100%",
           width: "100%",
-          backgroundImage: `url(${bgUrl})`,
+          backgroundImage: `url(${
+            this.state.cover ? SERVER_URL + this.state.cover : bgUrl
+          })`,
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-          backgroundSize: "100% ",
+          backgroundSize: "75% ",
+          backgroundColor: this.colors?.background || "black",
         }}
       />
     );

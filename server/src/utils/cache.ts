@@ -1,5 +1,35 @@
 import fs from "fs";
 
+export const cacheFileExists = (
+  fileName: string,
+  bucket: string = ""
+): boolean => {
+  const filePath =
+    (process.env.CACHE_FILES_BASE_PATH || "./files/") +
+    (bucket ? `${bucket}/` : "") +
+    fileName;
+  return fs.existsSync(filePath);
+};
+
+export const cacheFile = (
+  buffer: Buffer,
+  fileName: string,
+  bucket: string = ""
+): string => {
+  const filePath =
+    (process.env.CACHE_FILES_BASE_PATH || "./files/") +
+    (bucket ? `${bucket}/` : "") +
+    fileName;
+
+  if (!fileName) {
+    return "";
+  }
+
+  fs.writeFileSync(filePath, buffer);
+
+  return filePath;
+};
+
 export const cacheImage = async (
   url: string,
   bucket: string = ""

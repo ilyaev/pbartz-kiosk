@@ -23,6 +23,7 @@ export const HISTORY_EVENTS = {
 };
 
 export const SPOTIFY = {
-  albumCoverDuration: 10 * 1000,
+  albumCoverDuration: 1000 * 1000,
   vizualizerDuration: 30 * 1000,
+  device: "jupiter",
 };

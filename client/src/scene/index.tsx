@@ -8,7 +8,7 @@ import FinanceDashboard from "@/scene/finance";
 import NewsDashboard from "@/scene/news";
 import ApodDashboard from "@/scene/apod";
 import HistoryEventsDashboard from "@/scene/history_events";
-import { HISTORY_EVENTS, SCENE, SERVER_URL } from "@/lib/const";
+import { HISTORY_EVENTS, SCENE, SERVER_URL, SPOTIFY } from "@/lib/const";
 import FallacyScene from "@/scene/fallacy";
 import BiasScene from "@/scene/bias";
 
@@ -57,7 +57,8 @@ class DefaultDashboard extends Component<Props, State> {
         .then((res) => res.json())
         .then((data) => data.responseObject);
 
-      isMusicPlaying = myState.is_playing;
+      isMusicPlaying =
+        myState.is_playing && myState.device.name === SPOTIFY.device;
     }
 
     if (isMusicPlaying) {

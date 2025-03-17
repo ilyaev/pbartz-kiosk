@@ -31,5 +31,6 @@ python/__pycache__
 files/screenshot/*
 files/apod/*
 files/music/*
+files/cover/*
 
 db.sqlite
