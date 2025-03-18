@@ -41,27 +41,30 @@ class App extends Component<Props, State> {
     const now = new Date();
     const hour = now.getHours();
 
-    if (data[0] === -1) {
+    if (data[1] === -1) {
       return;
     }
 
     if (hour >= 23 && this.state.mode !== "standby") {
+      this.sensors?.setBacklight(0);
       this.setState({ mode: "standby" });
       return;
     }
 
     if (hour > 8 && this.state.mode !== "dashboard") {
       this.setState({ mode: "dashboard" });
+      this.sensors?.setBacklight(4);
       return;
     }
 
     if (this.brightness === -1) {
-      this.sensors?.setBacklight(50);
-      this.brightness = 50;
+      console.log("Setting brightness to 3");
+      this.sensors?.setBacklight(3);
+      this.brightness = 3;
     }
 
-    const light = data[0];
-    const motion = data[1];
+    const light = data[1];
+    const motion = data[0];
 
     this.lastLight = light;
     this.lastMotion = motion;

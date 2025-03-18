@@ -24,8 +24,8 @@ const Stock: React.FC<StockProps> = ({
         display: "flex",
         fontSize: "1.1em",
         backgroundColor: "white",
-        width: "30%",
-        maxWidth: "340px",
+        width: "50%",
+        maxWidth: "640px",
       }}
     >
       <div
@@ -42,8 +42,8 @@ const Stock: React.FC<StockProps> = ({
             borderRadius: "10px",
             backgroundColor:
               status === "UP" ? "rgb(230, 244, 234)" : "rgb(252, 232, 230)",
-            width: "50px",
-            height: "50px",
+            width: "100px",
+            height: "100px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -69,13 +69,14 @@ const Stock: React.FC<StockProps> = ({
         <div
           style={{
             fontWeight: "bold",
+            fontSize: "2.2em",
             // whiteSpace: "nowrap",
             textOverflow: "ellipsis",
           }}
         >
           {name.split("").slice(0, 15).join("")}
         </div>
-        <div>{value.toLocaleString()}</div>
+        <div style={{fontSize:"2.2em", fontWeight:"bold"}}>{value.toLocaleString()}</div>
       </div>
       <div
         style={{
@@ -86,6 +87,7 @@ const Stock: React.FC<StockProps> = ({
           alignItems: "center",
           justifyContent: "center",
           flexDirection: "column",
+          fontSize: "2.2em",
         }}
       >
         <div style={{ fontWeight: "bold" }}>{changePercent}%</div>

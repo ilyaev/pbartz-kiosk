@@ -29,6 +29,7 @@ backlightRouter.get("/:value", async (req: Request, res: Response) => {
       result = res;
     } else {
       const res = await execCommand(`wlr-randr --output DSI-2 --on`);
+      await execCommand(`sudo sh -c 'echo ${valueInt} > /sys/class/backlight/11-0045/brightness'`);
       result = res;
     }
 

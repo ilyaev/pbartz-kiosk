@@ -129,7 +129,7 @@ class FinanceScene extends Component<Props, State> {
             this.state.data.stocks.filter((one) =>
               one.change > 0 ? true : false
             ),
-            3
+            2
           ).map((ones, oi) => {
             return (
               <div
@@ -172,7 +172,7 @@ class FinanceScene extends Component<Props, State> {
             this.state.data.stocks.filter((one) =>
               one.change < 0 ? true : false
             ),
-            3
+            2
           ).map((ones, oi) => {
             return (
               <div
@@ -202,7 +202,7 @@ class FinanceScene extends Component<Props, State> {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            top: "80%", //`${Math.round(height * 0.35)}px`,
+            top: "75%", //`${Math.round(height * 0.35)}px`,
             width: "100vw",
           }}
         />
@@ -214,10 +214,10 @@ class FinanceScene extends Component<Props, State> {
           items={this.state.data.news.map((one) => {
             return (
               <>
-                <h1>{one.headline}</h1>
+                <h1 style={{fontSize:"5em"}}>{one.headline}</h1>
                 <div
                   style={{
-                    fontSize: "1.2em",
+                    fontSize: "1.6em",
                   }}
                 >
                   {one.source}, {one.timeAgo}

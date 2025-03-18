@@ -47,8 +47,9 @@ class BiasScene extends React.Component<Props, State> {
         </h1>
         <div
           style={{
-            marginBottom: "20px",
-            fontSize: "2.0em",
+            // marginBottom: "20px",
+            fontSize: "2.6em",
+            lineHeight: "1.4em",
           }}
         >
           {this.state.details}
@@ -114,7 +115,7 @@ class BiasScene extends React.Component<Props, State> {
             position: "absolute",
             top: "18%",
             width: "100vw",
-            height: "100vh",
+            height: "82vh",
             zIndex: 4,
             textAlign: "center",
             paddingLeft: "10%",

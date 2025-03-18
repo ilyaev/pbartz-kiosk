@@ -114,7 +114,7 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
     return (
       <div
         style={{
-          fontSize: "2.5em",
+          fontSize: "2.8em",
           border: "1px solid black",
           borderRadius: "20px",
           height: "205px",
@@ -122,6 +122,7 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
           backgroundColor: "rgba(255,255,255,.8)",
           overflow: "hidden",
           textAlign: "left",
+          lineHeight: "1.2em",
         }}
       >
         {item.event}

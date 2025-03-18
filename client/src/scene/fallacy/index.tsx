@@ -91,11 +91,12 @@ class FallacyScene extends React.Component<Props, State> {
             position: "absolute",
             top: "18%",
             width: "100vw",
-            height: "100vh",
+            height: "82vh",
             zIndex: 4,
             textAlign: "center",
             paddingLeft: "10%",
             paddingRight: "10%",
+            overflow: "hidden",
           }}
         >
           <h1
@@ -110,7 +111,7 @@ class FallacyScene extends React.Component<Props, State> {
             style={{
               marginBottom: "20px",
               fontWeight: "bold",
-              fontSize: "1.6em",
+              fontSize: "1.8em",
             }}
           >
             {this.state.description}
@@ -118,7 +119,8 @@ class FallacyScene extends React.Component<Props, State> {
           <div
             style={{
               marginBottom: "20px",
-              fontSize: "1.3em",
+              fontSize: "1.9em",
+              lineHeight: "1.4em",
             }}
           >
             {this.state.details}
@@ -126,7 +128,8 @@ class FallacyScene extends React.Component<Props, State> {
           <div
             style={{
               marginBottom: "20px",
-              fontSize: "1.3em",
+              fontSize: "1.7em",
+              lineHeight: "1.4em",
               fontWeight: "bold",
             }}
           >
