@@ -11,6 +11,8 @@ import { Dispatch } from "@reduxjs/toolkit";
 // import CubeGrid from "./scene/spotify/visuals/city";
 // import Life from "./scene/spotify/visuals/life";
 
+const DEBUG = true
+
 interface Props {
   dispatch: Dispatch;
   setLastLigtMotion: (data: { light: number; motion: number }) => void;
@@ -18,11 +20,13 @@ interface Props {
 
 interface State {
   mode: string;
+  light: number;
 }
 
 class App extends Component<Props, State> {
   state = {
     mode: "dashboard",
+    light: 0,
   };
 
   sensors: ServerSensors | null = null;
@@ -40,6 +44,7 @@ class App extends Component<Props, State> {
   onSensorData(data: number[]): void {
     const now = new Date();
     const hour = now.getHours();
+
 
     if (data[1] === -1) {
       return;
@@ -66,6 +71,8 @@ class App extends Component<Props, State> {
     const light = data[1];
     const motion = data[0];
 
+    this.setState({ light });
+
     this.lastLight = light;
     this.lastMotion = motion;
 
@@ -84,6 +91,7 @@ class App extends Component<Props, State> {
   renderStandby() {
     return (
       <div
+      key={'standby'}
         style={{
           backgroundColor: "black",
           color: "#AAAAAA",
@@ -100,11 +108,35 @@ class App extends Component<Props, State> {
     );
   }
 
+  renderDebug() {
+    return (
+      <div
+        style={{
+          backgroundColor: "black",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          zIndex: 1000,
+          color: "#AAAAAA",
+          width: "100",
+          height: "100",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "2em",
+        }}
+      >
+        {Math.round(this.state.light)}
+      </div>
+    );
+  }
+
   render() {
     return (
       <>
-        {this.state.mode === "dashboard" && <DefaultDashboard />}
+        {this.state.mode === "dashboard" && <DefaultDashboard key={'dashboard'} />}
         {this.state.mode === "standby" && this.renderStandby()}
+        {DEBUG && this.renderDebug()}
         {/* <ThreeScene /> */}
         {/* <Wave /> */}
         {/* <StarFly bars={[1, 0, 0, 0, 0, 0, 0]} rms={0.1} tempo={100} /> */}

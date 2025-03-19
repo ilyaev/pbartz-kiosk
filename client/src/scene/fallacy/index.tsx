@@ -111,7 +111,8 @@ class FallacyScene extends React.Component<Props, State> {
             style={{
               marginBottom: "20px",
               fontWeight: "bold",
-              fontSize: "1.8em",
+              fontSize: "2.2em",
+              lineHeight: "1.1em",
             }}
           >
             {this.state.description}
@@ -119,8 +120,8 @@ class FallacyScene extends React.Component<Props, State> {
           <div
             style={{
               marginBottom: "20px",
-              fontSize: "1.9em",
-              lineHeight: "1.4em",
+              fontSize: "2.2em",
+              lineHeight: "1em",
             }}
           >
             {this.state.details}
@@ -128,8 +129,8 @@ class FallacyScene extends React.Component<Props, State> {
           <div
             style={{
               marginBottom: "20px",
-              fontSize: "1.7em",
-              lineHeight: "1.4em",
+              fontSize: "2.2em",
+              lineHeight: "1em",
               fontWeight: "bold",
             }}
           >
