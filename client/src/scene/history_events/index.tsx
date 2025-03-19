@@ -31,7 +31,7 @@ class HistoryEventsScene extends Component<Props, State> {
   state = {
     loaded: localStorage.getItem("historyData") ? true : false,
     index: 0,
-    single: true,
+    single: false,
     data: JSON.parse(
       localStorage.getItem("historyData") || "[]"
     ) as State["data"],

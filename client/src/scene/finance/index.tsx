@@ -159,7 +159,7 @@ class FinanceScene extends Component<Props, State> {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            top: "10%", //`-${Math.round(height * 0.25)}px`,
+            top: "4%", //`-${Math.round(height * 0.25)}px`,
             width: "100vw",
           }}
         />
@@ -202,7 +202,7 @@ class FinanceScene extends Component<Props, State> {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            top: "75%", //`${Math.round(height * 0.35)}px`,
+            top: "77%", //`${Math.round(height * 0.35)}px`,
             width: "100vw",
           }}
         />
