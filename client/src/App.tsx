@@ -45,13 +45,13 @@ class App extends Component<Props, State> {
       return;
     }
 
-    if (hour >= 23 && this.state.mode !== "standby") {
+    if ((hour >= 23 || hour <= 8) && this.state.mode !== "standby") {
       this.sensors?.setBacklight(0);
       this.setState({ mode: "standby" });
       return;
     }
 
-    if (hour > 8 && this.state.mode !== "dashboard") {
+    if (hour > 8 && hour < 23 && this.state.mode !== "dashboard") {
       this.setState({ mode: "dashboard" });
       this.sensors?.setBacklight(4);
       return;
