@@ -10,7 +10,7 @@ const G = -2;
 interface Props {
   rms?: number;
   bars?: number[];
-  tempo?: number;
+  tempo: number;
 }
 
 class CubeGrid extends Component<Props> {
@@ -159,8 +159,8 @@ class CubeGrid extends Component<Props> {
     // console.log(rms, alto);
 
     const d = new Vec2(x, y).distanceTo(this.center);
-    const bar = Math.min(Math.floor((d / 5) * 6), 6);
-    const barValue = Math.abs(this.props.bars![bar] || 0);
+    const bar = Math.min(Math.floor((d / 10) * 6), 6);
+    const barValue = Math.abs(this.props.bars![bar] || 0)/2;
     const barValueRaw = this.props.bars![bar] || 0;
 
     let height = this.heightArray![i];
@@ -192,11 +192,11 @@ class CubeGrid extends Component<Props> {
 
     this.acceleration[i] *= 0.9;
 
-    this.dummy.position.set(offset - x * 2, offset - y * 2, height / 2);
+    this.dummy.position.set(offset - x * 2, offset - y * 2, height / 1.2);
 
     // const aScale =
     //   Math.max(-0.5, Math.min(0.5, this.acceleration[i] * 4.9)) * -0.8;
-    const scale = height > 1 ? 0.2 + Math.min(0.8, height * 0.1) : 0.2;
+    const scale = height > 1 ? 0.3 + Math.min(0.8, height * 0.2) : 0.2;
     this.dummy.scale.set(scale, scale, scale); // + height * aScale);
 
     // const centerX = this.grid.x / 2;
@@ -228,8 +228,8 @@ class CubeGrid extends Component<Props> {
       }
     }
 
-    this.center.x = this.grid.x / 2 + Math.sin(this.iTime * 0.5) * 10;
-    this.center.y = this.grid.y / 2 + Math.cos(this.iTime * 0.5) * 10;
+    this.center.x = this.grid.x / 2 + Math.sin(this.iTime * 0.5) * (this.props.tempo/12);
+    this.center.y = this.grid.y / 2 + Math.cos(this.iTime * 0.5) * (this.props.tempo/12);
 
     this.camera!.rotation.x = Math.PI / 4;
     // this.camera!.rotation.x = Math.PI / 4;

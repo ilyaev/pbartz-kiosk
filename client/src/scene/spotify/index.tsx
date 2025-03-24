@@ -324,7 +324,7 @@ class SpotifyScene extends Component<Props, State> {
       AvailableVisuals[this.state.vizIndex];
 
     return (
-      <Mic magnitude={3}>
+      <Mic magnitude={2}>
         <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
       </Mic>
     );

@@ -209,17 +209,17 @@ class CubeGrid extends Component<Props> {
     const d =
       new Vec2(x, y).distanceTo(
         new Vec2(
-          this.grid.x / 2 + Math.sin(this.iTime) * 0,
-          this.grid.y / 2 + Math.cos(this.iTime) * 0
+          this.grid.x / 2 - Math.sin(this.iTime) * 0,
+          this.grid.y / 2 - Math.cos(this.iTime) * 0
         )
       ) / this.grid.x;
 
-    const bar = Math.floor(d * 7) * 2;
+    const bar = Math.floor(d * 7);
 
     const height =
       1 +
-      2 * (1 - d) * Math.max(rms * 0.1, this.props.bars![bar]) * 10 +
-      bass * 5;
+      2 * (1 - d) * Math.max(rms * .2, this.props.bars![bar]) * (bar === 0 ? 10 : 15) +
+      bass * 15;
 
     this.dummy.position.set(
       offset - x * 2,
@@ -262,7 +262,7 @@ class CubeGrid extends Component<Props> {
     this.mesh!.translateY(-this.grid.y);
     this.mesh!.rotateZ(
       (this.delta * Math.PI) /
-        (8 - 100 / this.props.tempo - Math.min(0.8, alto) * 12)
+        (8 - 100 / this.props.tempo - Math.min(0.8, alto) * 18)
     );
     this.mesh!.translateX(this.grid.x);
     this.mesh!.translateY(this.grid.y);
@@ -272,7 +272,7 @@ class CubeGrid extends Component<Props> {
     this.mesh.instanceMatrix.needsUpdate = true;
 
     this.camera!.rotation.z =
-      (Math.sin(this.iTime) * Math.PI) / ((16 / bass) * 0.2);
+      (Math.sin(this.iTime) * Math.PI) / ((16 / bass) * 0.8);
 
     this.panelMaterial!.uniforms.iTime.value = this.iTime;
 
