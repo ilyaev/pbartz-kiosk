@@ -14,6 +14,9 @@ import Stars, { CONFIG as StarsConfig } from "./visuals/stars";
 import CityGrid, { CONFIG as CityGridConfig } from "./visuals/city";
 import SpheresPool, { CONFIG as SpheresPoolConfig } from "./visuals/pool";
 import FreqBars, { CONFIG as FreqBarsConfig } from "./visuals/bars";
+import FreqBarsMirror, {
+  CONFIG as FreqBarsMirrorConfig,
+} from "./visuals/bars_mirror";
 
 let nextLoad: number;
 let changeInterval: number;
@@ -22,16 +25,17 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [FreqBars]
-  : [Stars, CityGrid, SpheresPool, EQ3D, FreqBars];
+  ? [FreqBarsMirror]
+  : [Stars, CityGrid, SpheresPool, EQ3D, FreqBars, FreqBarsMirror];
 const VisualsConfig = DEBUG
-  ? [FreqBarsConfig]
+  ? [FreqBarsMirrorConfig]
   : [
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,
       EQ3DConfig,
       FreqBarsConfig,
+      FreqBarsMirrorConfig,
     ];
 
 interface TrackData {

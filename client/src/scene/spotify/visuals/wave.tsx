@@ -210,6 +210,8 @@ class Wave extends React.Component<WaveProps, WaveState> {
   private renderScene = () => {
     const { amountX = 50, amountY = 50 } = this.props;
 
+    // console.log(this.props.bars);
+
     this.camera.position.y = 900;
     this.camera.position.x = 500 + Math.sin(this.count / 10) * 200;
     this.camera.lookAt(this.scene.position);
@@ -227,6 +229,8 @@ class Wave extends React.Component<WaveProps, WaveState> {
     const center = new Vec2(amountX / 2, amountY / 2).add(
       new Vec2(Math.sin(this.count / 10) * 0, Math.cos(this.count / 10) * 10)
     );
+
+    const rms = this.props.rms || 0;
 
     for (let ix = 0; ix < amountX; ix++) {
       for (let iy = 0; iy < amountY; iy++) {
