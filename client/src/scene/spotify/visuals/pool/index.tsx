@@ -5,6 +5,8 @@ import fragmentShader from "./city.fragment.glsl";
 import vertexShader from "./city.vertex.glsl";
 import { Vec2 } from "@/lib/vectors";
 
+export const CONFIG = {};
+
 const G = -2;
 
 interface Props {
@@ -160,7 +162,7 @@ class CubeGrid extends Component<Props> {
 
     const d = new Vec2(x, y).distanceTo(this.center);
     const bar = Math.min(Math.floor((d / 10) * 6), 6);
-    const barValue = Math.abs(this.props.bars![bar] || 0)/2;
+    const barValue = Math.abs(this.props.bars![bar] || 0) / 2;
     const barValueRaw = this.props.bars![bar] || 0;
 
     let height = this.heightArray![i];
@@ -228,8 +230,10 @@ class CubeGrid extends Component<Props> {
       }
     }
 
-    this.center.x = this.grid.x / 2 + Math.sin(this.iTime * 0.5) * (this.props.tempo/12);
-    this.center.y = this.grid.y / 2 + Math.cos(this.iTime * 0.5) * (this.props.tempo/12);
+    this.center.x =
+      this.grid.x / 2 + Math.sin(this.iTime * 0.5) * (this.props.tempo / 12);
+    this.center.y =
+      this.grid.y / 2 + Math.cos(this.iTime * 0.5) * (this.props.tempo / 12);
 
     this.camera!.rotation.x = Math.PI / 4;
     // this.camera!.rotation.x = Math.PI / 4;

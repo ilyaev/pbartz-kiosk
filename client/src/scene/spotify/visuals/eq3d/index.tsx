@@ -3,6 +3,8 @@ import * as THREE from "three";
 import fragment from "./eq3d.fragment.glsl";
 import vertex from "./eq3d.vertex.glsl";
 
+export const CONFIG = {};
+
 const BAR_WIDTH = 5;
 const BAR_COUNT = 7;
 const BAR_HEIGHT = 40;

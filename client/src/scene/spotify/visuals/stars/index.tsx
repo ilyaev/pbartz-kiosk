@@ -1,6 +1,8 @@
 import React from "react";
 import * as THREE from "three";
 
+export const CONFIG = {};
+
 interface Props {
   a?: number;
   rms?: number;

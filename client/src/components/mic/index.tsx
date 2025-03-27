@@ -17,7 +17,7 @@ interface State {
   rms: number;
   zcr: number;
   beatDetected: boolean;
-  fps: number
+  fps: number;
 }
 
 class Mic extends Component<Props, State> {
@@ -75,6 +75,7 @@ class Mic extends Component<Props, State> {
         if (this.bufferSize < 1024) {
           this.bufferSize = 1024;
         }
+
         if (this.bufferSize < 2048) {
           this.bufferSize = 2048;
         }
@@ -127,7 +128,13 @@ class Mic extends Component<Props, State> {
         (this.props.magnitude ? this.props.magnitude : 1);
       const zcr = calculateZCR(this.buffer);
       const beatDetected = zcr > 0.1; // Example threshold for beat detection
-      this.setState({ bars: bars, rms, zcr, beatDetected, fps: Math.round(this.fps) });
+      this.setState({
+        bars: bars,
+        rms,
+        zcr,
+        beatDetected,
+        fps: Math.round(this.fps),
+      });
     }
     this.animationFrameId = requestAnimationFrame(this.animate);
   };
@@ -154,7 +161,7 @@ class Mic extends Component<Props, State> {
   }
 
   render() {
-    const { rms, zcr, bars,fps } = this.state;
+    const { rms, zcr, bars, fps } = this.state;
     return React.Children.map(this.props.children, (child) =>
       React.cloneElement(child as React.ReactElement, {
         rms,

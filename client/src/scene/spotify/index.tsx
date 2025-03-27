@@ -8,10 +8,12 @@ import { Ticker, TickerDirection } from "@/components/ticker";
 import ColorConverter from "string-color-converter";
 import { getPrimarySecondaryForBackground } from "@/lib/colors";
 import Mic from "@/components/mic";
-import EQ3D from "./visuals/eq3d";
-import Stars from "./visuals/stars";
-import CityGrid from "./visuals/city";
-import SpheresPool from "./visuals/pool";
+import WinampMic, { Props as WinampProps } from "@/components/mic/winamp";
+import EQ3D, { CONFIG as EQ3DConfig } from "./visuals/eq3d";
+import Stars, { CONFIG as StarsConfig } from "./visuals/stars";
+import CityGrid, { CONFIG as CityGridConfig } from "./visuals/city";
+import SpheresPool, { CONFIG as SpheresPoolConfig } from "./visuals/pool";
+import FreqBars, { CONFIG as FreqBarsConfig } from "./visuals/bars";
 
 let nextLoad: number;
 let changeInterval: number;
@@ -20,8 +22,17 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [SpheresPool]
-  : [Stars, CityGrid, SpheresPool, EQ3D];
+  ? [FreqBars]
+  : [Stars, CityGrid, SpheresPool, EQ3D, FreqBars];
+const VisualsConfig = DEBUG
+  ? [FreqBarsConfig]
+  : [
+      StarsConfig,
+      CityGridConfig,
+      SpheresPoolConfig,
+      EQ3DConfig,
+      FreqBarsConfig,
+    ];
 
 interface TrackData {
   tempo_bpm?: number;
@@ -323,7 +334,14 @@ class SpotifyScene extends Component<Props, State> {
     const VisualComponent: React.ComponentType<any> =
       AvailableVisuals[this.state.vizIndex];
 
-    return (
+    const config: WinampProps =
+      VisualsConfig[this.state.vizIndex] || ({} as WinampProps);
+
+    return config.mode && config.mode === "winamp" ? (
+      <WinampMic magnitude={2} {...config}>
+        <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
+      </WinampMic>
+    ) : (
       <Mic magnitude={2}>
         <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
       </Mic>

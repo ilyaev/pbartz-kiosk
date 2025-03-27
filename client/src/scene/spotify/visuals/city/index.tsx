@@ -8,6 +8,8 @@ import vertexBackShader from "./back.vertex.glsl";
 import fragmentBackShader from "./backspline.fragment.glsl";
 import { Vec2 } from "@/lib/vectors";
 
+export const CONFIG = {};
+
 const GRID_SIZE = new THREE.Vector2(10, 10);
 // const GRAVITY = 100.8;
 
@@ -218,7 +220,10 @@ class CubeGrid extends Component<Props> {
 
     const height =
       1 +
-      2 * (1 - d) * Math.max(rms * .2, this.props.bars![bar]) * (bar === 0 ? 10 : 15) +
+      2 *
+        (1 - d) *
+        Math.max(rms * 0.2, this.props.bars![bar]) *
+        (bar === 0 ? 10 : 15) +
       bass * 15;
 
     this.dummy.position.set(

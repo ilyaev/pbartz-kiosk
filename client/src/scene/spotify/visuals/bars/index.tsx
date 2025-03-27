@@ -1,7 +1,7 @@
 import { Component } from "react";
 import * as THREE from "three";
-import shaderCircles from "./shaders/bars.glsl";
-import generalVertex from "./shaders/general_vs.glsl";
+import shaderCircles from "./bars.glsl";
+import generalVertex from "./general_vs.glsl";
 import { Props as WnampProps } from "@/components/mic/winamp";
 
 export const CONFIG = {
@@ -59,16 +59,19 @@ class ScreenViz extends Component<Props> {
 
   componentDidUpdate(): void {
     const value = this.props.rms!;
-    // const value = this.props.bars![0];
-    // this.plane.rotateY(0.01);
-    this.cube.rotateY(0.01);
-    this.cube.rotateX(0.02);
-    this.cube.scale.set(value * 3, value * 3, value * 3);
     this.plane.material.uniforms.u_radius.value = value * 0.5;
     this.plane.material.uniforms.iTime.value =
       (Date.now() - ScreenViz.now) / 1000;
     this.plane.material.uniforms.bars.value =
-      this.props.bars || new Array(7).fill(0); // Update bars uniform
+      this.props.bars || new Array(32).fill(0); // Update bars uniform
+
+    // const bars = [];
+    // for (let i = 0; i < CONFIG.barsCount!; i++) {
+    //   bars.push((0.4 / 32) * (i + 1));
+    // }
+
+    // this.plane.material.uniforms.bars.value = bars;
+
     this.renderer.render(this.scene!, this.camera);
   }
 
@@ -100,11 +103,6 @@ class ScreenViz extends Component<Props> {
     });
     this.plane = new THREE.Mesh(this.geometry, this.material);
     this.scene.add(this.plane);
-
-    const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-    // const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    this.cube = new THREE.Mesh(cubeGeometry, this.material);
-    // this.scene.add(this.cube);
 
     this.camera.position.z = 3;
     this.renderer.setClearColor(0x000000, 0);

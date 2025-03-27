@@ -2,7 +2,7 @@ varying vec3 vUv;
 uniform vec2 u_resolution;
 uniform float u_radius;
 uniform float iTime;
-uniform float bars[7]; // Define bars as uniform array of 7 floats
+uniform float bars[32]; // Define bars as uniform array of 7 floats
 
 void main() {
     vec2 uv = vUv.xy/4.;
@@ -19,21 +19,27 @@ void main() {
     // col.r = abs(uv.x);
     // col.g = abs(uv.y);
 
-    for (int i = 0; i < 7; i++) {
-        float barValue = min(.6, max(bars[i], -.6));
-        float barHeight = abs(barValue) * 1.;
-        float barWidth = 0.05 + sin(uv.y*13.*barValue + iTime*3.*u_radius + float(i)/2.) * 0.01 + abs(barValue)*.1;
-        vec2 barPos = vec2(float(i) * 0.2 - 0.6, 0.);
+    for (int i = 0; i < 32; i++) {
+        float barValue = bars[i];//min(.6, max(bars[i], -.6));
+        float barHeight = abs(barValue) * .8;
+
+        // barHeight = floor(barHeight * 30.0) / 30.0;
+
+        float barWidth = 0.02 +  abs(barValue)*.05 + u_radius*.3;
+        vec2 barPos = vec2(float(i) * 0.04 - 0.6, barHeight*(1.1 + u_radius) - .22);
 
         if (uv.x > barPos.x - barWidth / 1.1 && uv.x < barPos.x + barWidth / 1.1 &&
-            uv.y > barPos.y - barHeight / 1.1 && uv.y < barPos.y + barHeight / 1.1) {
-            col += vec3(1.0, barValue * -1., 0.0); // Red color for the bars
+            uv.y > barPos.y - barHeight && uv.y < barPos.y + barHeight) {
+            // col += vec3(1.0-pow(barHeight,2.), .02/pow(barHeight,1.8), barHeight); // v1
+            col += vec3(1.0-.015/pow(barHeight,.85), .02/pow(barHeight,1.8), barHeight); // v1
         }
     }
 
 
 
     // col /= 7.;
+
+
 
     gl_FragColor = vec4(col, 1.);
 }
