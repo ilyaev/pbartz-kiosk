@@ -27,6 +27,7 @@ void main() {
         if (uv.y < -0.218) {
             barWidth = 0.02;//-= abs(uv.y + 0.218)*.3;
         }
+
         vec2 barPos = vec2(float(i) * 0.04 - 0.6, barHeight/1.8 - .22);
 
         if (uv.x > barPos.x - barWidth / 1.1 && uv.x < barPos.x + barWidth / 1.1 &&
@@ -41,5 +42,9 @@ void main() {
         }
     }
 
-    gl_FragColor = vec4(col, 1.);
+    // col = vec3(.9, .3, .1);
+
+    float line = (.1)/pow(abs(uv.y + .22), 1.2);
+
+    gl_FragColor = vec4(col*line, 1.);
 }
