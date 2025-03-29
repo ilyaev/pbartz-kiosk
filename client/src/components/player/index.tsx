@@ -164,7 +164,7 @@ function calculateSpectorgram(
   fft.timeToFrequencyDomain(inWaveData, outSpectralData);
 
   ///
-  const targetSize = 7;
+  const targetSize = numBuckets;
   const maxFreqIndex = 512;
   const logMaxFreqIndex = Math.log10(maxFreqIndex);
   const logMinFreqIndex = 0;

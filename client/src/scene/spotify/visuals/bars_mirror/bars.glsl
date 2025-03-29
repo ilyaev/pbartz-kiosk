@@ -28,17 +28,14 @@ void main() {
             barWidth = 0.02;//-= abs(uv.y + 0.218)*.3;
         }
 
+        barWidth /= 1.1;
+
         vec2 barPos = vec2(float(i) * 0.04 - 0.6, barHeight/1.8 - .22);
 
-        if (uv.x > barPos.x - barWidth / 1.1 && uv.x < barPos.x + barWidth / 1.1 &&
+        if (uv.x > barPos.x - barWidth && uv.x < barPos.x + barWidth &&
             uv.y > barPos.y - barHeight && uv.y < barPos.y + barHeight) {
             col += max(col, vec3(1.0-pow(barHeight,2.), .02/pow(barHeight,1.8), barHeight)); // v1
             col *= vec3(1.0-.015/pow(barHeight,.85), .02/pow(barHeight,1.8), barHeight);
-            // if (uv.y < -0.218) {
-            //     col = vec3(1.);
-            // }
-            // col *= vec3(1.0-pow(barHeight,1.), .02/pow(barHeight,1.8), barHeight - uv.y);
-            // col *= abs(sin(vec3(.6 + barHeight, .3 + uv.y, 1. - uv.y - barHeight*3.) + 2.9 + uv.y - barHeight));
         }
     }
 
