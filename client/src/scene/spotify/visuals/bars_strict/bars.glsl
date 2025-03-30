@@ -10,7 +10,7 @@ void main() {
     ouv.x *= ratio;
 
     ouv.x += .65;
-    ouv.y += .217;
+    ouv.y += .215;
 
     vec2 uv = fract(ouv * vec2(25., 1.));
     vec2 id = floor(ouv * vec2(25., 1.));
@@ -22,7 +22,7 @@ void main() {
     }
 
     int bar = int(id.x);
-    float barValue = bars[bar];
+    float barValue = min(.5, bars[bar]);
     vec3 col = vec3(0.);
 
     float row = abs(id.y);

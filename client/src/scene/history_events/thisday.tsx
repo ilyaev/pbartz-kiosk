@@ -14,7 +14,7 @@ interface State {
 
 export class HistoryThisDayScene extends Component<Props, State> {
   render() {
-    const pages = 3;
+    const pages = 1;
 
     const data = this.props.data
       .filter(
@@ -61,6 +61,8 @@ export class HistoryThisDayScene extends Component<Props, State> {
             height: "100%",
             // top: "-10px",
             position: "absolute",
+            alignItems: "center",
+            justifyContent: "center",
             // paddingTop: "27%",
           }}
         />
@@ -75,6 +77,8 @@ export class HistoryThisDayScene extends Component<Props, State> {
             zIndex: 1,
             width: "100%",
             textAlign: "center",
+            fontSize: "1.8em",
+            fontWeight: "bold",
             // color: "gray",
             // textShadow: "1px 1px 1px black",
           }}
@@ -86,7 +90,7 @@ export class HistoryThisDayScene extends Component<Props, State> {
           let delay = 0;
           let shift = 0;
           if (index === 0) {
-            shift = 7;
+            shift = 15;
             delay = 0.3;
           }
           if (index === 2) {
@@ -126,10 +130,10 @@ export class HistoryThisDayScene extends Component<Props, State> {
     return (
       <div
         style={{
-          fontSize: "2.7em",
+          fontSize: "4.2em",
           border: "1px solid black",
           borderRadius: "20px",
-          height: "205px",
+          // height: "205px",
           padding: "10px",
           backgroundColor: "rgba(255,255,255,.8)",
           overflow: "hidden",

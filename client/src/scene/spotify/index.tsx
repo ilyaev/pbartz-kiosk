@@ -344,7 +344,7 @@ class SpotifyScene extends Component<Props, State> {
     if (!this.state.equlizer) {
       return null;
     }
-    // const volume = this.state.player.device.volume_percent;
+    const volume = this.state.player.device.volume_percent;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const VisualComponent: React.ComponentType<any> =
@@ -355,11 +355,11 @@ class SpotifyScene extends Component<Props, State> {
 
     return config.mode && config.mode === "winamp" ? (
       <WinampMic magnitude={2} {...config}>
-        <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
+        <VisualComponent tempo={this.state.track.tempo_bpm || 100} volume={volume} />
       </WinampMic>
     ) : (
       <Mic magnitude={2}>
-        <VisualComponent tempo={this.state.track.tempo_bpm || 100} />
+        <VisualComponent tempo={this.state.track.tempo_bpm || 100} volume={volume} />
       </Mic>
     );
   }

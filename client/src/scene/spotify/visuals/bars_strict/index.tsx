@@ -19,6 +19,7 @@ interface Props {
   zcr?: number;
   bars?: number[];
   fps?: number;
+  volume?: number;
 }
 
 class ScreenViz extends Component<Props> {
@@ -63,7 +64,9 @@ class ScreenViz extends Component<Props> {
     this.plane.material.uniforms.iTime.value =
       (Date.now() - ScreenViz.now) / 1000;
     this.plane.material.uniforms.bars.value =
-      this.props.bars || new Array(32).fill(0); // Update bars uniform
+      this.props.bars!.map(bv => {
+        return this.props.volume! < 50 ? bv * ((50 - this.props.volume!) / 7) : bv
+      }) || new Array(32).fill(0); // Update bars uniform
 
     // const bars = [];
     // for (let i = 0; i < CONFIG.barsCount!; i++) {
@@ -133,7 +136,7 @@ class ScreenViz extends Component<Props> {
               padding: "10px",
             }}
           >
-            FPS: {parseInt(this.props.fps + "" || "0")}
+            FPS: {parseInt(this.props.fps + "" || "0")} - {this.props.volume}
           </div>
         ) : undefined}
       </>

@@ -11,7 +11,7 @@ import { Dispatch } from "@reduxjs/toolkit";
 // import CubeGrid from "./scene/spotify/visuals/city";
 // import Life from "./scene/spotify/visuals/life";
 
-const DEBUG = true
+const DEBUG = false
 
 interface Props {
   dispatch: Dispatch;

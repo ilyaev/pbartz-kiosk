@@ -24,9 +24,9 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
         };
       });
 
-    const perPage = Math.ceil(data.length / pages);
+    // const perPage = Math.ceil(data.length / pages);
 
-    const chunks = arrayChunk(data, perPage);
+    const chunks = [data];//  arrayChunk(data, perPage);
 
     return (
       <div
@@ -63,6 +63,8 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
             zIndex: 1,
             width: "100%",
             textAlign: "center",
+            fontWeight: "bold",
+            fontSize: "1.8em",
             // color: "gray",
             // textShadow: "1px 1px 1px black",
           }}
@@ -74,7 +76,7 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
           let delay = 0;
           let shift = 0;
           if (index === 0) {
-            shift = 7;
+            shift = 15;
             delay = 0.3;
           }
           if (index === 2) {
@@ -114,14 +116,17 @@ export class HistoryDidYouKnowScene extends Component<Props, State> {
     return (
       <div
         style={{
-          fontSize: "2.8em",
+          fontSize: "4.2em",
           border: "1px solid black",
           borderRadius: "20px",
-          height: "205px",
+          // height: "205px",
           padding: "10px",
           backgroundColor: "rgba(255,255,255,.8)",
           overflow: "hidden",
           textAlign: "left",
+          alignItems: "center",
+          display: "flex",
+          justifyContent: "center",
           lineHeight: "1.2em",
         }}
       >

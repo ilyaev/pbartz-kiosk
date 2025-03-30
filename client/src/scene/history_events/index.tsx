@@ -18,6 +18,7 @@ export interface State {
   loaded: boolean;
   index: number;
   single: boolean;
+  randomIndex: number;
   data: {
     item: string;
     text: string;
@@ -31,7 +32,8 @@ class HistoryEventsScene extends Component<Props, State> {
   state = {
     loaded: localStorage.getItem("historyData") ? true : false,
     index: 0,
-    single: false,
+    single: true,
+    randomIndex: Math.floor(Math.random() * 3),
     data: JSON.parse(
       localStorage.getItem("historyData") || "[]"
     ) as State["data"],
@@ -40,6 +42,8 @@ class HistoryEventsScene extends Component<Props, State> {
   async componentDidMount() {
     if (!isMounted) {
       isMounted = true;
+      const randomIndex = Math.floor(Math.random() * 3);
+      this.setState({ randomIndex });
       await this.loadData();
     }
   }
@@ -51,6 +55,8 @@ class HistoryEventsScene extends Component<Props, State> {
     const data: State["data"] = await response
       .json()
       .then((data) => data.responseObject.ai);
+
+    data.sort(() => Math.random() - 0.5);
     localStorage.setItem("historyData", JSON.stringify(data));
     this.setState({ data, loaded: true, index: 0 });
     isMounted = false;
@@ -77,10 +83,10 @@ class HistoryEventsScene extends Component<Props, State> {
       ) : undefined,
     ];
 
-    const randomIndex = Math.floor(Math.random() * pages.length);
+
 
     return this.state.single ? (
-      pages[randomIndex]
+      pages[this.state.randomIndex]
     ) : (
       <SceneFader delay={HISTORY_EVENTS.refreshInterval}>{pages}</SceneFader>
     );
