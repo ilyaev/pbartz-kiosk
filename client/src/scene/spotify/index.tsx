@@ -13,38 +13,42 @@ import EQ3D, { CONFIG as EQ3DConfig } from "./visuals/eq3d";
 import Stars, { CONFIG as StarsConfig } from "./visuals/stars";
 import CityGrid, { CONFIG as CityGridConfig } from "./visuals/city";
 import SpheresPool, { CONFIG as SpheresPoolConfig } from "./visuals/pool";
-import FreqBars, { CONFIG as FreqBarsConfig } from "./visuals/bars";
-import FreqBarsMirror, {
-  CONFIG as FreqBarsMirrorConfig,
-} from "./visuals/bars_mirror";
+// import FreqBars, { CONFIG as FreqBarsConfig } from "./visuals/bars";
+// import FreqBarsMirror, {
+//   CONFIG as FreqBarsMirrorConfig,
+// } from "./visuals/bars_mirror";
 import FreqBarsStrict, {
   CONFIG as FreqBarsStrictConfig,
 } from "./visuals/bars_strict";
+
+import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
 
 let nextLoad: number;
 let changeInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
-const DEBUG = false;
+const DEBUG = true;
 
 const AvailableVisuals = DEBUG
-  ? [FreqBarsStrict]
+  ? [DiscoRoom]
   : [
       Stars,
       CityGrid,
       SpheresPool,
       EQ3D,
+      DiscoRoom,
       // FreqBars,
       // FreqBarsMirror,
       FreqBarsStrict,
     ];
 const VisualsConfig = DEBUG
-  ? [FreqBarsStrictConfig]
+  ? [DiscoRoomConfig]
   : [
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,
       EQ3DConfig,
+      DiscoRoomConfig,
       // FreqBarsConfig,
       // FreqBarsMirrorConfig,
       FreqBarsStrictConfig,
@@ -355,11 +359,17 @@ class SpotifyScene extends Component<Props, State> {
 
     return config.mode && config.mode === "winamp" ? (
       <WinampMic magnitude={2} {...config}>
-        <VisualComponent tempo={this.state.track.tempo_bpm || 100} volume={volume} />
+        <VisualComponent
+          tempo={this.state.track.tempo_bpm || 100}
+          volume={volume}
+        />
       </WinampMic>
     ) : (
       <Mic magnitude={2}>
-        <VisualComponent tempo={this.state.track.tempo_bpm || 100} volume={volume} />
+        <VisualComponent
+          tempo={this.state.track.tempo_bpm || 100}
+          volume={volume}
+        />
       </Mic>
     );
   }
