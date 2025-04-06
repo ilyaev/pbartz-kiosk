@@ -20,6 +20,7 @@ import SpheresPool, { CONFIG as SpheresPoolConfig } from "./visuals/pool";
 import FreqBarsStrict, {
   CONFIG as FreqBarsStrictConfig,
 } from "./visuals/bars_strict";
+import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
 
@@ -30,7 +31,7 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = true;
 
 const AvailableVisuals = DEBUG
-  ? [DiscoRoom]
+  ? [TubesTape]
   : [
       Stars,
       CityGrid,
@@ -42,7 +43,7 @@ const AvailableVisuals = DEBUG
       FreqBarsStrict,
     ];
 const VisualsConfig = DEBUG
-  ? [DiscoRoomConfig]
+  ? [TubesConfig]
   : [
       StarsConfig,
       CityGridConfig,
