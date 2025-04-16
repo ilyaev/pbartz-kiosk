@@ -10,9 +10,10 @@ import React from "react";
 export const CONFIG = {
   mode: "winamp",
   barsCount: 7,
+  bufferSize: 1024 * 4,
   // hanningWindow: false,
-  // linearScale: 0.99,
-  smoothingAlpha: 0.8,
+  linearScale: 0.91,
+  smoothingAlpha: 0.5,
 } as WnampProps;
 
 interface Props {
@@ -280,7 +281,7 @@ class CubeGrid extends Component<Props> {
         0
       );
 
-      let force = -8 + (this.props.bars![i] || 0) * 30;
+      let force = -8 + (this.props.bars![i] || 0) * 130;
       force = (force * 2) / 4;
 
       const uv = new Vec3(x, y, force);
@@ -289,7 +290,7 @@ class CubeGrid extends Component<Props> {
 
       const yShift = 70 / Math.pow(distance, 1.3);
 
-      this.dummy.position.y += yShift * 0.2;
+      this.dummy.position.y += yShift * 0.1;
     }
     this.dummy.position.y -= 1;
     // this.dummy.rotation.x = -distance * 0.03;

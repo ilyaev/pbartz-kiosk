@@ -13,16 +13,12 @@ import EQ3D, { CONFIG as EQ3DConfig } from "./visuals/eq3d";
 import Stars, { CONFIG as StarsConfig } from "./visuals/stars";
 import CityGrid, { CONFIG as CityGridConfig } from "./visuals/city";
 import SpheresPool, { CONFIG as SpheresPoolConfig } from "./visuals/pool";
-// import FreqBars, { CONFIG as FreqBarsConfig } from "./visuals/bars";
-// import FreqBarsMirror, {
-//   CONFIG as FreqBarsMirrorConfig,
-// } from "./visuals/bars_mirror";
 import FreqBarsStrict, {
   CONFIG as FreqBarsStrictConfig,
 } from "./visuals/bars_strict";
 import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
-
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
+import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
 
 let nextLoad: number;
 let changeInterval: number;
@@ -31,28 +27,18 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = true;
 
 const AvailableVisuals = DEBUG
-  ? [TubesTape]
-  : [
-      Stars,
-      CityGrid,
-      SpheresPool,
-      EQ3D,
-      DiscoRoom,
-      // FreqBars,
-      // FreqBarsMirror,
-      FreqBarsStrict,
-    ];
+  ? [DebugConsole]
+  : [Stars, CityGrid, SpheresPool, EQ3D, DiscoRoom, FreqBarsStrict, TubesTape];
 const VisualsConfig = DEBUG
-  ? [TubesConfig]
+  ? [DebugConfig]
   : [
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,
       EQ3DConfig,
       DiscoRoomConfig,
-      // FreqBarsConfig,
-      // FreqBarsMirrorConfig,
       FreqBarsStrictConfig,
+      TubesConfig,
     ];
 
 interface TrackData {
@@ -315,8 +301,8 @@ class SpotifyScene extends Component<Props, State> {
             width: "100%",
           }}
         >
-          {this.renderHeader()}
-          {this.renderFooter()}
+          {DEBUG || this.renderHeader()}
+          {DEBUG || this.renderFooter()}
         </div>
         {this.state.equlizer
           ? this.renderMicEqulizer()

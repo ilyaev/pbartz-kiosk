@@ -16,10 +16,17 @@ export interface Props {
   barsCount?: number;
   hanningWindow?: boolean;
   linearScale?: number;
+  bufferSize?: number;
 }
 
 interface State {
   bars: number[];
+  freqLevel: {
+    low: number;
+    mid: number;
+    high: number;
+    freqBins: Uint8Array;
+  };
   rms: number;
   zcr: number;
   beatDetected: boolean;
@@ -37,7 +44,7 @@ class Mic extends Component<Props, State> {
   private lastFrameTime: number = performance.now();
   private fps: number = 0;
   private fft: FFT = new FFT();
-  private sample: Float32Array = new Float32Array(255).fill(0);
+  private sample: Float32Array = new Float32Array(4096).fill(0);
   private floatBuffer: Float32Array<ArrayBuffer> = new Float32Array(1024);
 
   constructor(props: Props) {
@@ -47,6 +54,12 @@ class Mic extends Component<Props, State> {
       rms: 0,
       zcr: 0,
       fps: 0,
+      freqLevel: {
+        low: 0,
+        mid: 0,
+        high: 0,
+        freqBins: new Uint8Array(4096),
+      },
       beatDetected: false,
     };
   }
@@ -54,11 +67,15 @@ class Mic extends Component<Props, State> {
   componentDidMount() {
     this.audioContext = new (window.AudioContext ||
       window.webkitAudioContext)();
+    this.fft = new FFT(this.props.bufferSize || 1024);
+    this.floatBuffer = new Float32Array(this.props.bufferSize || 1024);
     this.connectToAudioStream();
     this.startAnimation();
+    console.log("Mic component mounted");
   }
 
   componentWillUnmount() {
+    console.log("Mic component will unmount");
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
@@ -76,10 +93,10 @@ class Mic extends Component<Props, State> {
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.analyser = this.audioContext.createAnalyser();
 
-        this.bufferSize = 1024;
+        this.bufferSize = this.props.bufferSize || 1024;
 
         this.analyser.fftSize = this.bufferSize;
-        this.analyser.smoothingTimeConstant = this.props.smoothingAlpha || 0.95;
+        this.analyser.smoothingTimeConstant = 0.85; //this.props.smoothingAlpha || 0.95;
 
         this.buffer = new Uint8Array(this.bufferSize);
         this.frequencyData = new Float32Array(this.analyser.frequencyBinCount);
@@ -111,12 +128,36 @@ class Mic extends Component<Props, State> {
 
       const bars = this.calculateFrequencyBars();
       const rms = calculateRMS(this.floatBuffer);
-      const zcr = calculateZCR(this.buffer);
+      const zcr = calculateZCR(this.floatBuffer);
 
-      this.setState({ bars, rms, zcr, fps: this.fps });
+      const freqLevel = this.calculateFrequencyLevels();
+
+      this.setState({ bars, rms, zcr, fps: this.fps, freqLevel });
     }
     this.animationFrameId = requestAnimationFrame(this.animate);
   };
+
+  calculateFrequencyLevels() {
+    const fd = new Uint8Array(this.analyser!.frequencyBinCount);
+    this.analyser!.getByteFrequencyData(fd);
+
+    const freqBins = this.analyser!.frequencyBinCount;
+
+    const lowEnd = Math.floor(freqBins * 0.2); // Low frequencies (0-20%)
+    const midStart = lowEnd;
+    const midEnd = Math.floor(freqBins * 0.7); // Mid frequencies (20%-70%)
+    const highStart = midEnd;
+
+    const low = fd.slice(0, lowEnd).reduce((sum, val) => sum + val, 0) / lowEnd;
+    const mid =
+      fd.slice(midStart, midEnd).reduce((sum, val) => sum + val, 0) /
+      (midEnd - midStart);
+    const high =
+      fd.slice(highStart).reduce((sum, val) => sum + val, 0) /
+      (freqBins - highStart);
+
+    return { low, mid, high, freqBins: fd };
+  }
 
   calculateFrequencyBars(): number[] {
     const inWaveData = new Float32Array(this.buffer.length);
@@ -127,7 +168,7 @@ class Mic extends Component<Props, State> {
 
     this.fft.timeToFrequencyDomain(inWaveData, this.frequencyData);
 
-    const maxFreqIndex = 512;
+    const maxFreqIndex = this.bufferSize / 2;
     const logMaxFreqIndex = Math.log10(maxFreqIndex);
     const logMinFreqIndex = 0;
     const targetSize = this.props.barsCount || 7;
@@ -173,19 +214,21 @@ class Mic extends Component<Props, State> {
     }
     const res = [];
     for (let i = 0; i < targetSize; i++) {
-      res.push(Math.min(0.5, this.sample[i] / 10));
+      // res.push(Math.min(1, this.sample[i] / 16));
+      res.push(this.sample[i] / 16);
     }
     return res;
   }
 
   render() {
-    const { rms, zcr, bars, fps } = this.state;
+    const { rms, zcr, bars, fps, freqLevel } = this.state;
     return React.Children.map(this.props.children, (child) =>
       React.cloneElement(child as React.ReactElement, {
         rms,
         zcr,
         bars,
         fps,
+        freqLevel,
       })
     );
   }
@@ -209,7 +252,7 @@ function calculateRMS(data: Float32Array<ArrayBuffer>) {
   return Math.sqrt(sumOfSquares / data.length);
 }
 
-function calculateZCR(data: Uint8Array<ArrayBuffer>) {
+function calculateZCR(data: Float32Array<ArrayBuffer>) {
   let zeroCrossings = 0;
   for (let i = 1; i < data.length; i++) {
     if (

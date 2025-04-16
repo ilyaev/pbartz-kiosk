@@ -6,6 +6,11 @@ interface Props {
   playback?: boolean;
   children?: React.ReactNode;
   frequencyBuckets?: number;
+  bufferSize?: number;
+  smoothingAlpha?: number;
+  linearScale?: number;
+  kickDecay?: number;
+  kickThreshold?: number;
 }
 
 interface State {
@@ -13,59 +18,64 @@ interface State {
   rms: number;
   zcr: number;
   bars: number[];
+  kick: number;
 }
-
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-const analyser = audioContext.createAnalyser();
-const sampleRate = audioContext.sampleRate;
-const windowSizeSeconds = 0.02; // 20ms, to have >= 1024 samples
-let bufferSize = Math.round(sampleRate * windowSizeSeconds);
-
-if (bufferSize < 1024) {
-  bufferSize = 1024;
-}
-if (bufferSize < 2048) {
-  bufferSize = 2048;
-}
-
-bufferSize = 1024;
-
-analyser.fftSize = bufferSize; // Match fftSize to bufferSize (or use a larger power of 2)
-analyser.smoothingTimeConstant = 0.91; // No smoothing
-
-const buffer = new Float32Array(bufferSize);
-const frequencyData = new Float32Array(analyser.frequencyBinCount); // For getFloatFrequencyData
 
 export class AudioPlayer extends React.Component<Props, State> {
   numBuckets: number;
-  bucketSize: number;
   fft: FFT = new FFT();
+  analyser: AnalyserNode;
+  bufferSize: number;
+  buffer: Float32Array<ArrayBuffer>;
+  audioContext: AudioContext;
+  frequency: number[] = [] as number[];
+  kickDecay: number = 0;
+  deltaTime: number = 0;
+  lastTime: number = performance.now();
+  prevRms: number = 0;
   constructor(props: Props) {
     super(props);
+    this.audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    this.analyser = this.audioContext.createAnalyser();
+    this.bufferSize = props.bufferSize || 1024;
+
+    this.analyser.fftSize = this.bufferSize; // Match fftSize to bufferSize (or use a larger power of 2)
+    this.analyser.smoothingTimeConstant = 0.91; // No smoothing
+
+    this.buffer = new Float32Array(this.bufferSize);
 
     this.numBuckets = props.frequencyBuckets || 7; // Number of buckets
-    this.bucketSize = Math.floor(frequencyData!.length / this.numBuckets);
+
+    this.fft = new FFT(this.bufferSize);
 
     this.state = {
       isPlaying: false,
       rms: 0,
       zcr: 0,
       bars: [],
+      kick: 0,
     };
   }
 
   loadData(): void {
     fetch(this.props.url)
       .then((response) => response.arrayBuffer())
-      .then((arrayBuffer) => audioContext.decodeAudioData(arrayBuffer))
+      .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer))
       .then((audioBuffer) => {
-        const bufferSource = audioContext.createBufferSource();
+        const bufferSource = this.audioContext.createBufferSource();
         bufferSource.buffer = audioBuffer;
-        bufferSource.connect(analyser);
+        bufferSource.connect(this.analyser);
         if (this.props.playback) {
-          bufferSource.connect(audioContext.destination); // Connect to destination for playback
+          bufferSource.connect(this.audioContext.destination); // Connect to destination for playback
         }
         bufferSource.start(0);
+
+        for (let k = 0; k < this.props.bufferSize! / 2; k++) {
+          const fk =
+            k * (this.audioContext.sampleRate / this.props.bufferSize!);
+          this.frequency[k] = fk;
+        }
 
         this.updateVisualization(); // Start the visualization loop
         this.setState({ isPlaying: true });
@@ -73,39 +83,96 @@ export class AudioPlayer extends React.Component<Props, State> {
       .catch((err) => console.error("Error loading audio file:", err));
   }
 
+  normalizeWaveformShape() {
+    if (!this.analyser || !this.buffer) {
+      console.error("Analyser or buffer not initialized.");
+      return;
+    }
+
+    // 1. Get the latest waveform data
+    this.analyser.getFloatTimeDomainData(this.buffer);
+
+    // 2. Find the maximum absolute value in the buffer
+    let maxAbsValue = 0.0;
+    for (let i = 0; i < this.buffer.length; i++) {
+      const absValue = Math.abs(this.buffer[i]);
+      if (absValue > maxAbsValue) {
+        maxAbsValue = absValue;
+      }
+      // Alternative shorter syntax:
+      // maxAbsValue = Math.max(maxAbsValue, Math.abs(this.buffer[i]));
+    }
+
+    // 3. Normalize if the buffer isn't essentially silent
+    // Use a small epsilon to avoid division by zero or near-zero
+    const epsilon = 1e-6;
+    if (maxAbsValue > epsilon) {
+      // Divide each sample by the max absolute value found in this buffer
+      for (let i = 0; i < this.buffer.length; i++) {
+        this.buffer[i] = this.buffer[i] / maxAbsValue;
+      }
+      // Now the peak value(s) in the buffer will be exactly 1.0 or -1.0
+    } else {
+      for (let i = 0; i < this.buffer.length; i++) {
+        this.buffer[i] = 0.0;
+      }
+    }
+
+    // Now this.buffer contains the waveform data normalized relative to its
+    // own peak within this specific time slice, maintaining the [-1, 1] range.
+    // Quiet sounds will be scaled up to fill the range, loud sounds scaled down.
+    // The SHAPE relative to the buffer's peak is consistent.
+    // console.log("Shape-Normalized buffer (first 10):", this.buffer.slice(0, 10));
+  }
+
   updateVisualization() {
-    analyser.getFloatTimeDomainData(buffer);
-
-    const windowedBuffer = hanningWindow(buffer);
-
-    const bufferSource = audioContext.createBufferSource();
-    const audioBuffer = audioContext.createBuffer(1, bufferSize, sampleRate);
-    audioBuffer.getChannelData(0).set(windowedBuffer);
-    bufferSource.buffer = audioBuffer;
-    const gainNode = audioContext.createGain(); //Prevent audio feedback
-    gainNode.gain.value = 0;
-    bufferSource.connect(gainNode);
-    gainNode.connect(analyser);
-    bufferSource.start(0); // Important, or analyser won't have new data.
-
-    const rms = calculateRMS(buffer);
-    const zcr = calculateZCR(buffer);
+    this.deltaTime = performance.now() - this.lastTime;
+    this.lastTime = performance.now();
+    // this.analyser.getFloatTimeDomainData(this.buffer);
+    this.normalizeWaveformShape();
+    const rms = calculateRMS(this.buffer);
+    const zcr = calculateZCR(this.buffer);
     const bars = calculateSpectorgram(
       this.numBuckets,
-      this.bucketSize,
-      this.fft
+      this.fft,
+      this.analyser,
+      this.props.smoothingAlpha,
+      this.props.linearScale
     );
-    // console.log(rms, zcr);
-    this.setState({ rms, zcr, bars });
+
+    let kick = this.state.kick;
+
+    if (
+      this.prevRms > rms &&
+      rms > (this.props.kickThreshold || 0.38) &&
+      this.kickDecay === 0
+    ) {
+      this.kickDecay = (this.props.kickDecay || 0.1) * 1000;
+      console.log("Kiuck!", rms, this.kickDecay);
+      kick = 1;
+    } else {
+      kick = 0;
+    }
+    this.prevRms = rms;
+    if (this.kickDecay > 0) {
+      this.kickDecay = Math.max(0, this.kickDecay - this.deltaTime);
+    }
+
+    this.setState({ rms, zcr, bars, kick });
 
     requestAnimationFrame(this.updateVisualization.bind(this));
   }
 
   render() {
-    const { rms, zcr, bars } = this.state;
+    const { rms, zcr, bars, kick } = this.state;
     return this.state.isPlaying ? (
       React.Children.map(this.props.children, (child) =>
-        React.cloneElement(child as React.ReactElement, { rms, zcr, bars })
+        React.cloneElement(child as React.ReactElement, {
+          rms,
+          zcr,
+          bars,
+          kick,
+        })
       )
     ) : (
       <div
@@ -125,14 +192,7 @@ export class AudioPlayer extends React.Component<Props, State> {
   }
 }
 
-const sample = new Float32Array(76).fill(0);
-const samples = new Array<Float32Array>(100);
-for (let i = 0; i < 100; i++) {
-  samples[i] = new Float32Array(76).fill(0);
-}
-
-const smoothValue = 5;
-let smoothIndex = 0;
+const sample = new Float32Array(512).fill(0);
 
 const smoothValueFunction = (
   prevValue: number,
@@ -144,18 +204,18 @@ const smoothValueFunction = (
 
 function calculateSpectorgram(
   numBuckets: number,
-  bucketSize: number,
-  fft: FFT
+  fft: FFT,
+  analyser: AnalyserNode,
+  smoothingAlpha: number = 0.5,
+  linearScale: number = 1
 ) {
-  // return [0.1, 0.3, 0, 0.2, 0.25, 0.12, 0.2];
-
-  const dataArray = new Uint8Array(1024);
+  const dataArray = new Uint8Array(analyser.frequencyBinCount * 2);
   const inWaveData = new Float32Array(dataArray.length);
-  const outSpectralData = new Float32Array(512);
+  const outSpectralData = new Float32Array(analyser.frequencyBinCount);
 
   analyser.getByteTimeDomainData(dataArray);
 
-  const data = hanningWindow(dataArray);
+  const data = dataArray;
 
   for (let i = 0; i < dataArray.length; i++) {
     inWaveData[i] = (data[i] - 128) / 24;
@@ -165,14 +225,13 @@ function calculateSpectorgram(
 
   ///
   const targetSize = numBuckets;
-  const maxFreqIndex = 512;
+  const maxFreqIndex = analyser.frequencyBinCount;
   const logMaxFreqIndex = Math.log10(maxFreqIndex);
   const logMinFreqIndex = 0;
 
-  const alpha = 0.95;
+  const alpha = smoothingAlpha;
+  const scale = linearScale; // Adjust this value between 0.0 and 1.0
 
-  // const sample = new Float32Array(targetSize);
-  const scale = 0.91; // Adjust this value between 0.0 and 1.0
   for (let x = 0; x < targetSize; x++) {
     // Linear interpolation between linear and log scaling
     const linearIndex = (x / (targetSize - 1)) * (maxFreqIndex - 1);
@@ -200,7 +259,6 @@ function calculateSpectorgram(
         outSpectralData[index1],
         alpha
       );
-      // sample[x] = outSpectralData[index1]; // + sample[x];
     } else {
       const frac2 = scaledIndex - index1;
       const frac1 = 1.0 - frac2;
@@ -209,65 +267,20 @@ function calculateSpectorgram(
         frac1 * outSpectralData[index1] + frac2 * outSpectralData[index2],
         alpha
       );
-      // sample[x] =
-      //   // sample[x] +
-      //   frac1 * outSpectralData[index1] + frac2 * outSpectralData[index2];
     }
   }
 
-  return sample.map((value) => value / 20);
-
-  samples[smoothIndex] = new Float32Array(sample);
-
-  const averagedSample = new Float32Array(targetSize).fill(0);
-  for (let i = 0; i < smoothValue; i++) {
-    for (let j = 0; j < targetSize; j++) {
-      averagedSample[j] += samples[i][j];
-    }
-  }
-
-  smoothIndex = (smoothIndex + 1) % smoothValue;
-
-  return averagedSample.map((value) => value / 20 / smoothValue);
-
-  ///
-
-  // console.log({ dataArray, outSpectralData });
-
-  analyser.getFloatFrequencyData(frequencyData!); // Get data in dB
-  // console.log(frequencyData.length, numBuckets, bucketSize);
-  const bars = [];
-
-  for (let i = 0; i < numBuckets; i++) {
-    const startIdx = i * bucketSize;
-    const endIdx = startIdx + bucketSize;
-    // const bucketData = frequencyData!.slice(startIdx, endIdx);
-    const bucketData = outSpectralData!.slice(startIdx, endIdx);
-    const avgValue =
-      bucketData.reduce((sum, value) => sum + value, 0) / bucketData.length;
-    // const normalizedValue = (avgValue + 140) / 140; // Normalize to [0, 1]
-    bars.push(avgValue / 10);
-  }
-
-  return bars;
-}
-
-function hanningWindow(data: Float32Array<ArrayBuffer>) {
-  const n = data.length;
-  const windowedData = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const multiplier = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
-    windowedData[i] = data[i] * multiplier;
-  }
-  return windowedData;
+  return sample.map((value) => value / 128) as number[];
 }
 
 function calculateRMS(data: Float32Array<ArrayBuffer>) {
   // return 0.1;
+
   let sumOfSquares = 0;
   for (const amplitude of data) {
     sumOfSquares += amplitude * amplitude;
   }
+  // console.log("RMS", sumOfSquares, data.length);
   return Math.sqrt(sumOfSquares / data.length);
 }
 

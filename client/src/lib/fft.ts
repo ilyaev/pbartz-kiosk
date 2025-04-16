@@ -13,10 +13,10 @@ export class FFT {
   private static readonly TWO_PI = 6.2831853; // 2 * Math.PI
   private static readonly HALF_PI = 1.5707963268; // Math.PI / 2
 
-  constructor() {
+  constructor(_samplesIn: number = 1024) {
     // Assuming these are your hardcoded values:
-    const samplesIn = 1024; // hardcoded value
-    const samplesOut = 512; // hardcoded value
+    const samplesIn = _samplesIn; // hardcoded value
+    const samplesOut = _samplesIn / 2; // hardcoded value
     // const bEqualize = true; // hardcoded value
     const envelopePower = 1.0; // hardcoded value
 

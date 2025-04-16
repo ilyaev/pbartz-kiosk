@@ -1,13 +1,19 @@
 import { Component } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { Props as WnampProps } from "@/components/mic/winamp";
+
 export const CONFIG = {
   mode: "winamp",
   barsCount: 64,
-  // hanningWindow: false,
-  // linearScale: 0.99,
-  smoothingAlpha: 0.8,
+  hanningWindow: false,
+  linearScale: 0.95,
+  smoothingAlpha: 0.5,
+  bufferSize: 1024 * 4,
 } as WnampProps;
 
 interface Props {
@@ -21,6 +27,7 @@ class TubesTape extends Component<Props> {
   scene?: THREE.Scene;
   camera?: THREE.PerspectiveCamera;
   renderer?: THREE.WebGLRenderer;
+  composer?: EffectComposer;
   dummy: THREE.Object3D<THREE.Object3DEventMap> = new THREE.Object3D();
   mesh?: THREE.InstancedMesh<
     THREE.CylinderGeometry,
@@ -75,8 +82,8 @@ class TubesTape extends Component<Props> {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(width, height);
-    // this.renderer.shadowMap.enabled = true;
-    // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.BasicShadowMap;
     // this.renderer.setClearColor(0x000000, 1);
     this.mount!.appendChild(this.renderer.domElement);
 
@@ -98,6 +105,7 @@ class TubesTape extends Component<Props> {
     // Instanced Mesh
     const count = this.grid.x * this.grid.y;
     this.mesh = new THREE.InstancedMesh(this.geometry, this.material, count);
+    this.mesh.castShadow = true;
 
     const xArray = new Float32Array(count);
     const yArray = new Float32Array(count);
@@ -129,10 +137,12 @@ class TubesTape extends Component<Props> {
     this.mesh.position.x = this.grid.x - 1;
     this.mesh.position.y = this.grid.y - 1;
 
+    this.mesh.receiveShadow = true;
+
     this.scene.add(this.mesh);
 
     // Spotlight
-    this.spotlight.position.set(0, -45, 5);
+    this.spotlight.position.set(0, -45, 10);
     this.spotlight.angle = Math.PI;
     this.spotlight.penumbra = 0.1;
     this.spotlight.decay = 1.8;
@@ -141,13 +151,35 @@ class TubesTape extends Component<Props> {
 
     this.spotlight.shadow.mapSize.width = 1024;
     this.spotlight.shadow.mapSize.height = 1024;
-    this.spotlight.shadow.camera.near = 1;
-    this.spotlight.shadow.camera.far = 200;
+    this.spotlight.shadow.camera.near = 5;
+    this.spotlight.shadow.camera.far = 30;
+    this.spotlight.shadow.focus = 1;
+    // spotLight.shadow.mapSize.width = 1024; // Shadow map quality
+    // spotLight.shadow.mapSize.height = 1024;
+    // spotLight.shadow.camera.near = 5; // Adjust near/far planes for the light's shadow camera
+    // spotLight.shadow.camera.far = 30;
+    // spotLight.shadow.focus = 1;
 
     this.scene.add(this.spotlight);
 
+    // Additional Spotlight
+    const topSpotlight = new THREE.SpotLight(0xffffff, 3000);
+    topSpotlight.position.set(0, -20, 80);
+    topSpotlight.angle = Math.PI;
+    topSpotlight.penumbra = 0.2;
+    topSpotlight.decay = 1.8;
+    topSpotlight.distance = 300;
+    topSpotlight.castShadow = true;
+
+    topSpotlight.shadow.mapSize.width = 1024;
+    topSpotlight.shadow.mapSize.height = 1024;
+    topSpotlight.shadow.camera.near = 1;
+    topSpotlight.shadow.camera.far = 200;
+
+    this.scene.add(topSpotlight);
+
     // Floor
-    const floorGeometry = new THREE.PlaneGeometry(200, 200);
+    const floorGeometry = new THREE.PlaneGeometry(400, 200);
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0x808080,
       roughness: 0.8,
@@ -175,7 +207,7 @@ class TubesTape extends Component<Props> {
         #include <color_fragment>
         vec2 uv = vUv;
         diffuseColor.rgb = vec3(.1);
-        uv = fract(uv*15.) - .5;
+        uv = fract(uv*vec2(30., 15.)) - .5;
         float d = length(uv);
         diffuseColor += (1. - smoothstep(.0, .1, d))*.1;
         diffuseColor += (1. - smoothstep(.4, .6, abs(uv.x)+.5))*.1;
@@ -192,7 +224,7 @@ class TubesTape extends Component<Props> {
     this.scene.add(floor);
 
     // Back Wall
-    const wallGeometry = new THREE.PlaneGeometry(200, 200);
+    const wallGeometry = new THREE.PlaneGeometry(400, 200);
     // const wallMaterial = new THREE.MeshStandardMaterial({
     //   color: 0x404040,
     //   roughness: 0.8,
@@ -204,6 +236,62 @@ class TubesTape extends Component<Props> {
     backWall.position.y = 10;
     backWall.receiveShadow = true;
     this.scene.add(backWall);
+
+    // EffectComposer and Bloom Pass
+    const renderPass = new RenderPass(this.scene, this.camera);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.9, // strength
+      0.9, // radius
+      0.65 // threshold
+    );
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(renderPass);
+    this.composer.addPass(bloomPass);
+
+    // TV Scanline Shader
+    const scanlineShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        time: { value: 0.0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float time;
+        varying vec2 vUv;
+
+        void main() {
+          vec4 color = texture2D(tDiffuse, vUv);
+
+          // vec2 curvedUV = vUv * 2.0 - 1.0; // Transform UV to range [-1, 1]
+          // curvedUV.x *= 1.0 + pow(abs(curvedUV.y), 2.0) * 0.1; // Apply horizontal curve
+          // curvedUV.y *= 1.0 + pow(abs(curvedUV.x), 2.0) * 0.1; // Apply vertical curve
+          // curvedUV = curvedUV * 0.5 + 0.5; // Transform back to range [0, 1]
+          // color = texture2D(tDiffuse, curvedUV); // Sample texture with curved UV
+
+          float scanline = sin(vUv.y * 1800.0 + time * 2.0) * 0.01;
+          color.rgb -= scanline;
+          gl_FragColor = color;
+        }
+      `,
+    };
+
+    const scanlinePass = new ShaderPass(scanlineShader);
+    //
+    this.composer.addPass(scanlinePass);
+
+    // Update composer size on resize
+    window.addEventListener("resize", () => {
+      this.composer!.setSize(window.innerWidth, window.innerHeight);
+    });
 
     this.animate();
 
@@ -235,8 +323,8 @@ class TubesTape extends Component<Props> {
 
     this.dummy.scale.set(1, height, 1);
 
-    this.dummy.rotation.x =
-      Math.PI / 2 + (Math.sin(x / 5 + this.iTime * 3) * Math.PI) / 32;
+    // this.dummy.rotation.x =
+    //   Math.PI / 2 + Math.sin(x / 35 + this.iTime + this.props.rms!) * Math.PI;
 
     this.dummy.updateMatrix();
     this.mesh!.setMatrixAt(i, this.dummy.matrix);
@@ -261,20 +349,28 @@ class TubesTape extends Component<Props> {
     this.geometry.attributes.height.needsUpdate = true;
     this.mesh.instanceMatrix.needsUpdate = true;
     this.controls!.update();
-    // this.camera!.position.z = 1;
-    // this.camera?.rotateZ(((this.props.rms! / 5) * 50 * 1.4) / 10);
+
     this.camera!.rotation.z =
       (Math.sin(this.iTime * 1 + this.props.rms! * 2) * Math.PI) / 32;
 
     this.camera!.position.y =
-      -80 + Math.cos(this.iTime + this.props.rms! * 20) * 6;
-    // this.spotlight.decay = 1.8 - (this.props.rms! / 50) * 50 * 0.9;
+      -70 + Math.cos(this.iTime + this.props.rms! * 10) * 3;
+
     this.spotlight.color.setHSL(
       (this.props.rms! / 5) * 200.1,
       (this.props.rms! / 5) * 100.1,
       (this.props.rms! / 5) * 100.1
     );
-    this.renderer!.render(this.scene!, this.camera!);
+
+    const scanlinePass = this.composer!.passes.find(
+      (pass) => pass instanceof ShaderPass && pass.uniforms.time !== undefined
+    ) as ShaderPass;
+
+    if (scanlinePass) {
+      scanlinePass.uniforms.time.value = this.iTime;
+    }
+
+    this.composer!.render();
   }
 
   render() {
