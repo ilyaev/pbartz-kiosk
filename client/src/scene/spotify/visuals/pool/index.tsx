@@ -5,7 +5,14 @@ import fragmentShader from "./city.fragment.glsl";
 import vertexShader from "./city.vertex.glsl";
 import { Vec2 } from "@/lib/vectors";
 
-export const CONFIG = {};
+export const CONFIG = {
+  // mode: "winamp",
+  // barsCount: 7,
+  // hanningWindow: false,
+  // linearScale: 0.99,
+  // smoothingAlpha: 0.5,
+  // bufferSize: 1024 * 4,
+} as any;
 
 const G = -2;
 

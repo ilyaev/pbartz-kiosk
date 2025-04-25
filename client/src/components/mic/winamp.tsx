@@ -17,6 +17,7 @@ export interface Props {
   hanningWindow?: boolean;
   linearScale?: number;
   bufferSize?: number;
+  volume?: number;
 }
 
 interface State {
@@ -88,7 +89,11 @@ class Mic extends Component<Props, State> {
 
   connectToAudioStream() {
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({ audio: {
+                        autoGainControl: false,
+                        noiseSuppression: false,
+                        echoCancellation: false
+                    } })
       .then((stream) => {
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.analyser = this.audioContext.createAnalyser();
@@ -215,7 +220,7 @@ class Mic extends Component<Props, State> {
     const res = [];
     for (let i = 0; i < targetSize; i++) {
       // res.push(Math.min(1, this.sample[i] / 16));
-      res.push(this.sample[i] / 16);
+      res.push(this.sample[i] / 64);
     }
     return res;
   }

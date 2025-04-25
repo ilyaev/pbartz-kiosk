@@ -1,13 +1,26 @@
 import React from "react";
 import * as THREE from "three";
 
-export const CONFIG = {};
+export const CONFIG = {
+  // mode: "winamp",
+  barsCount: 7,
+  hanningWindow: false,
+  linearScale: 0.5,
+  smoothingAlpha: 0.5,
+  bufferSize: 1024 * 4,
+} as any
+
 
 interface Props {
   a?: number;
   rms?: number;
   zcr?: number;
   bars?: number[];
+  freqLevel: {
+    low: number;
+    mid: number;
+    high: number;
+  };
   tempo?: number;
 }
 

@@ -10,10 +10,10 @@ import React from "react";
 export const CONFIG = {
   mode: "winamp",
   barsCount: 7,
-  bufferSize: 1024 * 4,
+  bufferSize: 1024 * 2,
   // hanningWindow: false,
-  linearScale: 0.91,
-  smoothingAlpha: 0.5,
+  linearScale: 0.99,
+  smoothingAlpha: 0.8,
 } as WnampProps;
 
 interface Props {
@@ -56,11 +56,10 @@ class CubeGrid extends Component<Props> {
 
   componentDidUpdate() {
     this.lights.forEach((light, index) => {
-      light.intensity = 3 + this.props.rms! * 3; //this.props.bars ? this.props.bars[index] * 3 : 0;
-      light.height = this.props.bars![index] * 50;
-      light.position.y = 10 + Math.pow(this.props.rms!, 0.5) * 10; //this.props.bars ? this.props.bars[index] * 10 : 0;
-      // light.position.z = light.height / 2;
-      // light.color.setHSL(this.props.bars ? this.props.bars[0] * 3 : 0, 1, 0.5);
+      light.intensity = 1 + this.props.rms! * 3; //this.props.bars ? this.props.bars[index] * 3 : 0;
+      // light.height = 10;
+      // light.color.setHSL(Math.sin(this.iTime)*.5 + .5,,1);
+      light.color.setRGB(.9 * this.props.rms!, .3+this.props.bars![6], .1)
     });
   }
 
@@ -82,15 +81,15 @@ class CubeGrid extends Component<Props> {
     RectAreaLightUniformsLib.init();
     this.lights.forEach((light) => light.dispose());
     this.lights = [];
-    for (let i = 0; i < 7; i++) {
-      const light = new THREE.RectAreaLight(0xffffff, 5, 4, 10);
-      light.position.set(i * 5 - (7 / 2) * 5, 10, 2);
+    // for (let i = 0; i < 7; i++) {
+      const light = new THREE.RectAreaLight(0xffffff, 5, 20, 20);
+      light.position.set(5, 10, 2);
       light.rotateX(Math.PI / 2);
       light.rotateY(Math.PI);
       this.scene.add(light);
       this.lights.push(light);
       this.scene.add(new RectAreaLightHelper(light));
-    }
+    // }
   }
 
   createFloor() {
@@ -316,21 +315,10 @@ class CubeGrid extends Component<Props> {
       }
     }
 
-    this.lights.forEach((light, index) => {
-      // light.rotateX(Math.PI / 1000);
-      light.color.setRGB(
-        1,
-        1 - this.props.bars![index] * 2.5,
-        1 - this.props.bars![index] * 2.5
-      );
-    });
-
-    // this.material!.uniforms.iTime.value = this.iTime;
     this.geometry.attributes.height.needsUpdate = true;
     this.mesh.instanceMatrix.needsUpdate = true;
 
     this.camera!.position.y = 5 + (Math.sin(this.iTime) * 3 + 1.5);
-    // this.camera!.position.z = 0 + (Math.cos(this.iTime) * 3 + 1.5);
 
     this.controls!.update();
 

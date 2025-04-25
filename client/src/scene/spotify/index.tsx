@@ -24,7 +24,7 @@ let nextLoad: number;
 let changeInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
-const DEBUG = true;
+const DEBUG = false;
 
 const AvailableVisuals = DEBUG
   ? [DebugConsole]
@@ -345,7 +345,7 @@ class SpotifyScene extends Component<Props, State> {
       VisualsConfig[this.state.vizIndex] || ({} as WinampProps);
 
     return config.mode && config.mode === "winamp" ? (
-      <WinampMic magnitude={2} {...config}>
+      <WinampMic magnitude={2} {...config} volume={volume}>
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}

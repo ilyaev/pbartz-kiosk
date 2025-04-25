@@ -3,7 +3,15 @@ import * as THREE from "three";
 import fragment from "./eq3d.fragment.glsl";
 import vertex from "./eq3d.vertex.glsl";
 
-export const CONFIG = {};
+export const CONFIG = {
+  mode: "winamp",
+  barsCount: 7,
+  hanningWindow: false,
+  linearScale: 0.9,
+  smoothingAlpha: 0.5,
+  bufferSize: 1024 * 4,
+} as any;
+
 
 const BAR_WIDTH = 5;
 const BAR_COUNT = 7;

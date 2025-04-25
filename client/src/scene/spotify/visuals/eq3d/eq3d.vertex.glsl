@@ -21,16 +21,16 @@ void main() {
     float middle = step(lid, grid.y * uRms);
     // float d = length(cUv - vec2(.5));
     float barOn = (1. - step(barValue * grid.y, abs(id.y)));
-    float bass = step(lid, 90. * abs(uBars[6])) * 25.;
+    float bass = step(lid, 90. * abs(uBars[5])) * 25.;
 
-    pos.y += length(id + vec2(sin(iTime) * 4.)) * abs(uBars[6]) * uRms * 12. * middle * 25.;
+    pos.y += length(id + vec2(sin(iTime) * 4.)) * abs(uBars[5]) * uRms * 12. * middle * 25.;
     pos.y += bass + bass * uRms*2.;
 
     vColor += baseColor * (barOn + .1);
     vColor += (2.2 + uRms * 5.) / pow(abs(id.y + barValue*grid.y), .9 + .1 * (7. - bar)) * baseColor;
 
     float scale = 150. + bass * 2.;
-    scale *= min(1. - abs(.2 / pow(vColor.r, .7)), 1.); //fall off
+    scale *= min(1. - abs(.2 / pow(vColor.r, .9)), 1.); //fall off
 
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);

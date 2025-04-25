@@ -35,7 +35,7 @@ void main() {
         } else {
             rect *= smoothstep((1. - barValue*(.3 + u_radius*1.5)), 1., uv.y);
         }
-        col = vec3(1., 0., 0.) * rect*.5;
+        col = vec3(1., 0., 0.) * rect*.8;
     }
 
     // col.g = (abs(id.y))*.2;
@@ -47,7 +47,9 @@ void main() {
     col *= s;
 
     if (row == -0.) {
-        col += .1/pow(-uv.y + .9, 1.2) * vec3(.9, .3, .1)*.3;
+        col += .5/pow(-uv.y + 1.1, 1.1) * vec3(.3, .9, .1)*.3;
+    } else {
+        col += .3/pow(uv.y - .5, 1.1) * vec3(.9, .3, .1)*.3;
     }
 
     gl_FragColor = vec4(col, 1.);

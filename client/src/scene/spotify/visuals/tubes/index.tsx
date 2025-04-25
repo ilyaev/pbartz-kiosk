@@ -12,7 +12,7 @@ export const CONFIG = {
   barsCount: 64,
   hanningWindow: false,
   linearScale: 0.95,
-  smoothingAlpha: 0.5,
+  smoothingAlpha: 0.4,
   bufferSize: 1024 * 4,
 } as WnampProps;
 
@@ -145,7 +145,7 @@ class TubesTape extends Component<Props> {
     this.spotlight.position.set(0, -45, 10);
     this.spotlight.angle = Math.PI;
     this.spotlight.penumbra = 0.1;
-    this.spotlight.decay = 1.8;
+    this.spotlight.decay = 1.6;
     this.spotlight.distance = 250;
     this.spotlight.castShadow = true;
 
@@ -167,7 +167,7 @@ class TubesTape extends Component<Props> {
     topSpotlight.position.set(0, -20, 80);
     topSpotlight.angle = Math.PI;
     topSpotlight.penumbra = 0.2;
-    topSpotlight.decay = 1.8;
+    topSpotlight.decay = 1.5;
     topSpotlight.distance = 300;
     topSpotlight.castShadow = true;
 
