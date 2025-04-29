@@ -19,9 +19,12 @@ import FreqBarsStrict, {
 import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
 import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
+import {mapRange} from "@/lib/utils";
+import ServerSensors from "@/lib/sensors";
 
 let nextLoad: number;
 let changeInterval: number;
+let syncInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
 const DEBUG = false;
@@ -90,6 +93,7 @@ interface State {
   cover1: string;
   cover2: string;
   currentCover: number;
+  debug: string
 }
 
 let isMounted = false;
@@ -104,7 +108,16 @@ class SpotifyScene extends Component<Props, State> {
     cover1: "",
     cover2: "",
     currentCover: 0,
+    debug: "empty"
   };
+
+  volume: number = 0;
+  captureValue: number = 100;
+  sensors: ServerSensors = new ServerSensors({
+    callback: (data: number[]) => {
+
+    }})
+    debug: string = ''
 
   colors?: {
     primary: string;
@@ -127,7 +140,16 @@ class SpotifyScene extends Component<Props, State> {
     if (changeInterval) {
       clearInterval(changeInterval);
     }
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
     nextChange = Date.now() + SPOTIFY.albumCoverDuration;
+
+    syncInterval = setInterval(() => {
+      this.sensors.syncCaptureLevel(this.captureValue);
+    }, 5 * 1000)
+
+
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
         this.setState({
@@ -156,12 +178,14 @@ class SpotifyScene extends Component<Props, State> {
     if (!myState.is_playing || myState.device.name !== SPOTIFY.device) {
       return;
     }
-    this.setState({ player: myState, cover: "", cover2: "" });
+
+    this.volume = myState.device.volume_percent;
+    this.captureValue = Math.round(this.volume > 20 ? 100 - mapRange(this.volume, 30, 100, 15, 90) : 100)
+    this.setState({ player: myState, cover: "", cover2: "", debug: '' });
+
+
 
     const tout = myState.item.duration_ms - (myState.progress_ms || 0) + 1000;
-    // if (tout === 1000) {
-    //   tout = 30000;
-    // }
 
     nextLoad = setTimeout(() => {
       this.setState({ track: {} as TrackData });
@@ -301,6 +325,7 @@ class SpotifyScene extends Component<Props, State> {
             width: "100%",
           }}
         >
+        {DEBUG && <div>{this.volume} - {this.captureValue}</div>}
           {DEBUG || this.renderHeader()}
           {DEBUG || this.renderFooter()}
         </div>
@@ -335,6 +360,7 @@ class SpotifyScene extends Component<Props, State> {
     if (!this.state.equlizer) {
       return null;
     }
+
     const volume = this.state.player.device.volume_percent;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -229,9 +229,9 @@ class CubeGrid extends Component<Props> {
       1 +
       2 *
         (1 - d) *
-        Math.max(rms * 0.2, this.props.bars![bar]) *
-        (bar === 0 ? 10 : 15) +
-      bass * 15;
+        Math.max(rms * 0.1, this.props.bars![bar]) *
+        (bar === 0 ? 7 : 12) +
+      bass * 2;
 
     this.dummy.position.set(
       offset - x * 2,
@@ -274,7 +274,7 @@ class CubeGrid extends Component<Props> {
     this.mesh!.translateY(-this.grid.y);
     this.mesh!.rotateZ(
       (this.delta * Math.PI) /
-        (8 - 100 / this.props.tempo - Math.min(0.8, alto) * 18)
+        (8 - 100 / this.props.tempo - Math.min(0.8, alto) * 12)
     );
     this.mesh!.translateX(this.grid.x);
     this.mesh!.translateY(this.grid.y);

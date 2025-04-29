@@ -25,6 +25,22 @@ export class ServerSensors {
     await fetch(SERVER_URL + "backlight/" + value);
   }
 
+  async syncCaptureLevel(level: number) {
+    const current = await (await fetch(SERVER_URL + "capture/0")).json();
+    let value = -1
+    try {
+      value = parseInt(current.responseObject.result || '-1')
+    } catch (e) {
+      value = -1
+    }
+
+    let res = ''
+    if (value > 0 && value !== level) {
+      res = await (await fetch(SERVER_URL + "capture/" + Math.round(level))).json();
+    }
+    return JSON.stringify({res, current, value})
+  }
+
   close() {
     this.eventSource.close();
   }

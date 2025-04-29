@@ -5,7 +5,7 @@ export const CONFIG = {
   mode: "winamp",
   barsCount: 64,
   hanningWindow: false,
-  linearScale: .99,
+  linearScale: .91,
   smoothingAlpha: 0.5,
   bufferSize: 1024 * 4,
 } as WnampProps;

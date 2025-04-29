@@ -10,10 +10,10 @@ import React from "react";
 export const CONFIG = {
   mode: "winamp",
   barsCount: 7,
-  bufferSize: 1024 * 2,
+  bufferSize: 1024 * 4,
   // hanningWindow: false,
-  linearScale: 0.99,
-  smoothingAlpha: 0.8,
+  linearScale: 0.91,
+  smoothingAlpha: 0.66,
 } as WnampProps;
 
 interface Props {
@@ -59,7 +59,7 @@ class CubeGrid extends Component<Props> {
       light.intensity = 1 + this.props.rms! * 3; //this.props.bars ? this.props.bars[index] * 3 : 0;
       // light.height = 10;
       // light.color.setHSL(Math.sin(this.iTime)*.5 + .5,,1);
-      light.color.setRGB(.9 * this.props.rms!, .3+this.props.bars![6], .1)
+      // light.color.setRGB(.9 * this.props.rms!, .3+this.props.bars![6], .1)
     });
   }
 
@@ -254,7 +254,7 @@ class CubeGrid extends Component<Props> {
       y * spacing - (this.grid.y * spacing) / 2 + spacing / 2
     );
 
-    const freq = 0.3;
+    const freq = 0.7;
     const timeScale = 0.2; // + Math.sin(x / 3) + Math.sin(y / 3);
 
     let dx = x;
@@ -287,9 +287,9 @@ class CubeGrid extends Component<Props> {
 
       const distance = center.sub(uv).length();
 
-      const yShift = 70 / Math.pow(distance, 1.3);
+      const yShift = 70 / Math.pow(distance, .91);
 
-      this.dummy.position.y += yShift * 0.1;
+      this.dummy.position.y += yShift * 0.1 + .05;
     }
     this.dummy.position.y -= 1;
     // this.dummy.rotation.x = -distance * 0.03;

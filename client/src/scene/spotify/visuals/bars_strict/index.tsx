@@ -8,8 +8,8 @@ export const CONFIG = {
   mode: "winamp",
   barsCount: 32,
   // hanningWindow: false,
-  linearScale: 0.5,
-  smoothingAlpha: 0.7,
+  linearScale: 0.95,
+  smoothingAlpha: 0.5,
   bufferSize: 1024 * 4,
 } as WnampProps;
 

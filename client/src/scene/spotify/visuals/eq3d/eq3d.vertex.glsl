@@ -21,9 +21,9 @@ void main() {
     float middle = step(lid, grid.y * uRms);
     // float d = length(cUv - vec2(.5));
     float barOn = (1. - step(barValue * grid.y, abs(id.y)));
-    float bass = step(lid, 90. * abs(uBars[5])) * 25.;
+    float bass = step(lid, 90. * abs(uBars[5])) * 5.;
 
-    pos.y += length(id + vec2(sin(iTime) * 4.)) * abs(uBars[5]) * uRms * 12. * middle * 25.;
+    pos.y += length(id + vec2(sin(iTime) * 4.)) * abs(uBars[5]) * uRms * 1. * middle * 10.;
     pos.y += bass + bass * uRms*2.;
 
     vColor += baseColor * (barOn + .1);
