@@ -19,6 +19,12 @@ interface State {
   zcr: number;
   bars: number[];
   kick: number;
+  freqLevel: {
+    low: number;
+    mid: number;
+    high: number;
+    freqBins: Uint8Array;
+  };
 }
 
 export class AudioPlayer extends React.Component<Props, State> {
@@ -55,6 +61,12 @@ export class AudioPlayer extends React.Component<Props, State> {
       zcr: 0,
       bars: [],
       kick: 0,
+      freqLevel: {
+        low: 0,
+        mid: 0,
+        high: 0,
+        freqBins: new Uint8Array(4096),
+      },
     };
   }
 
@@ -148,7 +160,6 @@ export class AudioPlayer extends React.Component<Props, State> {
       this.kickDecay === 0
     ) {
       this.kickDecay = (this.props.kickDecay || 0.1) * 1000;
-      console.log("Kiuck!", rms, this.kickDecay);
       kick = 1;
     } else {
       kick = 0;
@@ -158,13 +169,37 @@ export class AudioPlayer extends React.Component<Props, State> {
       this.kickDecay = Math.max(0, this.kickDecay - this.deltaTime);
     }
 
-    this.setState({ rms, zcr, bars, kick });
+    const freqLevel = this.calculateFrequencyLevels();
+
+    this.setState({ rms, zcr, bars: Array.from(bars), kick, freqLevel });
 
     requestAnimationFrame(this.updateVisualization.bind(this));
   }
 
+  calculateFrequencyLevels() {
+    const fd = new Uint8Array(this.analyser!.frequencyBinCount);
+    this.analyser!.getByteFrequencyData(fd);
+
+    const freqBins = this.analyser!.frequencyBinCount;
+
+    const lowEnd = Math.floor(freqBins * 0.2); // Low frequencies (0-20%)
+    const midStart = lowEnd;
+    const midEnd = Math.floor(freqBins * 0.7); // Mid frequencies (20%-70%)
+    const highStart = midEnd;
+
+    const low = fd.slice(0, lowEnd).reduce((sum, val) => sum + val, 0) / lowEnd;
+    const mid =
+      fd.slice(midStart, midEnd).reduce((sum, val) => sum + val, 0) /
+      (midEnd - midStart);
+    const high =
+      fd.slice(highStart).reduce((sum, val) => sum + val, 0) /
+      (freqBins - highStart);
+
+    return { low, mid, high, freqBins: fd };
+  }
+
   render() {
-    const { rms, zcr, bars, kick } = this.state;
+    const { rms, zcr, bars, kick, freqLevel } = this.state;
     return this.state.isPlaying ? (
       React.Children.map(this.props.children, (child) =>
         React.cloneElement(child as React.ReactElement, {
@@ -172,6 +207,7 @@ export class AudioPlayer extends React.Component<Props, State> {
           zcr,
           bars,
           kick,
+          freqLevel,
         })
       )
     ) : (
@@ -270,7 +306,7 @@ function calculateSpectorgram(
     }
   }
 
-  return sample.map((value) => value / 128) as number[];
+  return sample.map((value) => value / 128);
 }
 
 function calculateRMS(data: Float32Array<ArrayBuffer>) {

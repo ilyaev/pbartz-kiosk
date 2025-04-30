@@ -1,13 +1,14 @@
 import { Component, createRef } from "react";
 import { Props as WnampProps } from "@/components/mic/winamp";
+import { CustomAudioAnalyzer } from "@/lib/audio";
 
 export const CONFIG = {
   mode: "winamp",
   barsCount: 64,
   hanningWindow: false,
-  linearScale: .91,
+  linearScale: 0.99,
   smoothingAlpha: 0.5,
-  bufferSize: 1024 * 4,
+  bufferSize: 1024 * 1,
 } as WnampProps;
 
 type Props = {
@@ -31,6 +32,9 @@ class Visualizer extends Component<Props, State> {
   private rmsCanvasRef = createRef<HTMLCanvasElement>();
   private barsCanvasRef = createRef<HTMLCanvasElement>();
   private freqCanvasRef = createRef<HTMLCanvasElement>();
+  private aa = new CustomAudioAnalyzer();
+  private kickCanvasRef = createRef<HTMLCanvasElement>();
+  kickColor: string | CanvasGradient | CanvasPattern = "rgb(255, 0, 0)";
 
   constructor(props: Props) {
     super(props);
@@ -40,12 +44,25 @@ class Visualizer extends Component<Props, State> {
       midTrails: [],
       highTrails: [],
     };
+
+    this.aa.kickThreshold = 0.58;
+    this.aa.kickLag = 100;
+    this.aa.onKick = () => {
+      console.log("Kick detected!", this.props.rms);
+    };
   }
 
   componentDidUpdate(prevProps: Props) {
     if (this.props.rms !== undefined && this.props.rms !== prevProps.rms) {
+      this.aa.setRms(this.props.rms);
+      this.aa.setFrequncyLevels(
+        this.props.freqLevel ? this.props.freqLevel.low : 0,
+        this.props.freqLevel ? this.props.freqLevel.mid : 0,
+        this.props.freqLevel ? this.props.freqLevel.high : 0
+      );
       this.updateRmsTrail(this.props.rms);
       this.drawRmsCanvas();
+      this.drawKickCanvas();
     }
 
     if (this.props.bars !== prevProps.bars) {
@@ -60,10 +77,22 @@ class Visualizer extends Component<Props, State> {
   updateRmsTrail(rms: number) {
     this.setState((prevState) => {
       const newTrail = [...prevState.rmsTrail, rms];
+
       if (newTrail.length > 100) newTrail.shift(); // Limit trail length
-      const lowTrail = [...prevState.lowTrails, this.props.freqLevel.low];
-      const midTrail = [...prevState.midTrails, this.props.freqLevel.mid];
-      const highTrail = [...prevState.highTrails, this.props.freqLevel.high];
+
+      const lowTrail = [
+        ...prevState.lowTrails,
+        this.props.freqLevel ? this.props.freqLevel.low : 0,
+      ];
+      const midTrail = [
+        ...prevState.midTrails,
+        this.props.freqLevel ? this.props.freqLevel.mid : 0,
+      ];
+      const highTrail = [
+        ...prevState.highTrails,
+        this.props.freqLevel ? this.props.freqLevel.high : 0,
+      ];
+
       if (lowTrail.length > 100) lowTrail.shift();
       if (midTrail.length > 100) midTrail.shift();
       if (highTrail.length > 100) highTrail.shift();
@@ -75,6 +104,43 @@ class Visualizer extends Component<Props, State> {
         highTrails: highTrail,
       };
     });
+  }
+
+  drawKickCanvas() {
+    const canvas = this.kickCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText("Kick: " + this.aa.kick.toFixed(2), 10, 30);
+        ctx.beginPath();
+        ctx.arc(
+          canvas.width / 2,
+          canvas.height / 2,
+          this.props.rms * 20 + this.aa.kick * 25,
+          0,
+          2 * Math.PI
+        );
+
+        if (this.aa.kick === 1) {
+          this.kickColor = `rgb(${Math.floor(
+            Math.random() * 255
+          )}, ${Math.floor(Math.random() * 255)}, ${Math.floor(
+            Math.random() * 255
+          )})`;
+          ctx.fill();
+        }
+        ctx.strokeStyle = this.kickColor;
+        ctx.fillStyle = this.kickColor;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    }
   }
 
   drawRmsCanvas() {
@@ -236,17 +302,31 @@ class Visualizer extends Component<Props, State> {
           <div
             style={{
               border: "1px solid black",
-              padding: "20px", // Adjust padding
-              margin: "10px", // Adjust margin
+              padding: "20px",
+              margin: "10px",
               backgroundColor: "#f0f0f0",
-              width: "480px", // Double width
-              height: "300px", // Double height
+              width: "480px",
+              height: "300px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center", // Center children horizontally
+              justifyContent: "center", // Center children vertically
             }}
           >
             <div>Buffer Size: {CONFIG.bufferSize}</div>
             <div>Linear Scale: {CONFIG.linearScale}</div>
             <div>Smoothing Alpha: {CONFIG.smoothingAlpha}</div>
             <div>Frequency Bars: {CONFIG.barsCount}</div>
+            <canvas
+              ref={this.kickCanvasRef}
+              width={440}
+              height={100}
+              style={{
+                border: "1px solid black",
+                margin: "10px auto",
+                display: "block",
+              }}
+            />
           </div>
         </div>
       </div>
