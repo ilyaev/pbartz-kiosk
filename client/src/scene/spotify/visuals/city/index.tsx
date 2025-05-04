@@ -12,9 +12,9 @@ export const CONFIG = {
   // mode: "winamp",
   // barsCount: 7,
   // hanningWindow: false,
-  // linearScale: 0.99,
-  // smoothingAlpha: 0.5,
-  // bufferSize: 1024 * 4,
+  // linearScale: 0.1,
+  // smoothingAlpha: 0.6,
+  // bufferSize: 1024 * 1,
 } as any;
 
 const GRID_SIZE = new THREE.Vector2(10, 10);

@@ -81,7 +81,7 @@ class Mic extends Component<Props, State> {
         }
 
         this.analyser.fftSize = this.bufferSize; // Match fftSize to bufferSize (or use a larger power of 2)
-        this.analyser.smoothingTimeConstant = 0.9; // No smoothing
+        this.analyser.smoothingTimeConstant = 0.6; // No smoothing
 
         this.buffer = new Float32Array(this.bufferSize);
         this.frequencyData = new Float32Array(this.analyser.frequencyBinCount); // For getFloatFrequencyData

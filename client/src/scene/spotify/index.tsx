@@ -28,14 +28,17 @@ let changeInterval: number;
 let syncInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
-const DEBUG = true;
+const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [TiltScene]
-  : [Stars, CityGrid, SpheresPool, EQ3D, DiscoRoom, FreqBarsStrict, TubesTape];
+  // ? [TiltScene]
+  ? [DebugConsole]
+  : [TiltScene,Stars, CityGrid, SpheresPool, EQ3D, DiscoRoom, FreqBarsStrict, TubesTape];
 const VisualsConfig = DEBUG
-  ? [TiltConfig]
+  // ? [TiltConfig]
+  ? [DebugConfig]
   : [
+      TiltConfig,
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,
@@ -378,6 +381,10 @@ class SpotifyScene extends Component<Props, State> {
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
+          covers={[
+            this.state.cover1,
+            this.state.cover2,
+          ]}
         />
       </WinampMic>
     ) : (
@@ -388,8 +395,6 @@ class SpotifyScene extends Component<Props, State> {
           covers={[
             this.state.cover1,
             this.state.cover2,
-            // "http://localhost:8080/resize_image/file/cover/5PeJhKyPdS7xF9dijXjiJl_2_anim.png",
-            // "http://localhost:8080/resize_image/file/cover/5PeJhKyPdS7xF9dijXjiJl_2_anim_2.png",
           ]}
         />
       </Mic>

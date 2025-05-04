@@ -220,7 +220,7 @@ class Mic extends Component<Props, State> {
     const res = [];
     for (let i = 0; i < targetSize; i++) {
       // res.push(Math.min(1, this.sample[i] / 16));
-      res.push(this.sample[i] / 64);
+      res.push(this.sample[i] / 32);
     }
     return res;
   }

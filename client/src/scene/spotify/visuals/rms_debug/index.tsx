@@ -4,11 +4,11 @@ import { CustomAudioAnalyzer } from "@/lib/audio";
 
 export const CONFIG = {
   mode: "winamp",
-  barsCount: 64,
+  barsCount: 7,
   hanningWindow: false,
   linearScale: 0.99,
-  smoothingAlpha: 0.5,
-  bufferSize: 1024 * 1,
+  smoothingAlpha: 0.8,
+  bufferSize: 1024 * 2,
 } as WnampProps;
 
 type Props = {

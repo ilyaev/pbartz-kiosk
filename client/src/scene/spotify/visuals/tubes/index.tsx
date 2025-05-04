@@ -11,9 +11,9 @@ export const CONFIG = {
   mode: "winamp",
   barsCount: 64,
   hanningWindow: false,
-  linearScale: 0.95,
-  smoothingAlpha: 0.4,
-  bufferSize: 1024 * 4,
+  linearScale: 0.91,
+  smoothingAlpha: 0.51,
+  bufferSize: 1024 * 1,
 } as WnampProps;
 
 interface Props {
@@ -351,15 +351,15 @@ class TubesTape extends Component<Props> {
     this.controls!.update();
 
     this.camera!.rotation.z =
-      (Math.sin(this.iTime * 1 + this.props.rms! * 2) * Math.PI) / 32;
+      (Math.sin(this.iTime * 1 + this.props.rms! * 1.2) * Math.PI) / 32;
 
     this.camera!.position.y =
-      -70 + Math.cos(this.iTime + this.props.rms! * 10) * 3;
+      -70 + Math.cos(this.iTime + this.props.rms! * 5) * 3;
 
     this.spotlight.color.setHSL(
-      (this.props.rms! / 5) * 200.1,
-      (this.props.rms! / 5) * 100.1,
-      (this.props.rms! / 5) * 100.1
+      (this.props.rms! / 2) * 200.1,
+      (this.props.rms! / 2) * 100.1,
+      (this.props.rms! / 2) * 100.1
     );
 
     const scanlinePass = this.composer!.passes.find(

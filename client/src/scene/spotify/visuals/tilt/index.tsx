@@ -5,12 +5,12 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Props as WnampProps } from "@/components/mic/winamp";
 
 export const CONFIG = {
-  // mode: "winamp",
-  barsCount: 64,
+  mode: "winamp",
+  barsCount: 7,
   hanningWindow: false,
   linearScale: 0.99,
-  smoothingAlpha: 0.5,
-  bufferSize: 1024 * 1,
+  smoothingAlpha: 0.8,
+  bufferSize: 1024 * 2,
 } as WnampProps;
 
 interface MaterialWithShaderUniforms extends THREE.Material {
@@ -60,7 +60,7 @@ class BubblesGrid extends Component<Props> {
   loadedTexture2?: THREE.Texture;
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.58;
+    this.aa.kickThreshold = 0.85;
     this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);
@@ -153,7 +153,8 @@ class BubblesGrid extends Component<Props> {
       0.1,
       1000
     );
-    this.camera.position.set(-28, 18, 28);
+    this.camera.position.set(-28, 30, 1);
+    this.camera.fov = 15;
     // this.camera.rotateX(Math.PI / 12);
 
     // Renderer
@@ -244,8 +245,8 @@ class BubblesGrid extends Component<Props> {
         float ix = mod(instanceId, uGridSize);
         float iz = floor(instanceId / uGridSize);
 
-        float offsetX = (ix - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.03);
-        float offsetZ = (iz - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.03);
+        float offsetX = (ix - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.02);
+        float offsetZ = (iz - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.02);
 
         vec2 gridUV = vec2(ix / (uGridSize - 1.0), iz / (uGridSize - 1.0));
         vec3 texColor = texture2D(cover1, gridUV).rgb;
@@ -272,11 +273,11 @@ class BubblesGrid extends Component<Props> {
         float middleWave = rippleDist * (0.1 + sin(iTime * 2.0 + iz/20.) * 0.01);
         float rippleWave = sin(rippleDist * .15 - iTime * 2.0) * exp(-rippleDist * 0.02);
 
-        float radius = .2 + abs(bars[1])*.9;// + sin(iTime * 2.0 + ix/70.) * 0.1 + (kick * 0.1 * kickDirection);
+        float radius = .2 + abs(bars[1])*.2;// + sin(iTime * 2.0 + ix/70.) * 0.1 + (kick * 0.1 * kickDirection);
         float maxHeight = 3.;
-        float distance = radius - length(gridUV -.5);// - vec2(bars[0]*1.7, bars[2]*1.7));
+        float distance = radius - length(gridUV -.5);// - vec2(bars[1]*.3, bars[2]*.2));
         float thickness = 0.03;
-        float fade = 0.01 + .1*bars[0];
+        float fade = 0.005 + .1*bars[2];
         float circle = smoothstep(0.0, fade, distance);
         circle *= smoothstep(thickness + fade, thickness, distance);
         float blobWave = circle * maxHeight;
@@ -286,7 +287,7 @@ class BubblesGrid extends Component<Props> {
         if (kickDirection == 1.) {
           offsetY += rippleWave * (1.2 + kick * 3.5);
         } else {
-          offsetY += middleWave * kickDirection * (1. + kick) ;
+          offsetY += middleWave * kickDirection * (1. + kick*.3) ;
         }
         offsetY -= blobWave;
 
@@ -294,7 +295,7 @@ class BubblesGrid extends Component<Props> {
 
         // scale instances
         float scale = max(0.2, 1. - .05/pow(texColor.b, 1.9));// + kick));
-        transformed *= mix(scale, 1., sin(iTime*2.)*.5 + 0.5); // scale
+        transformed *= 1.;//mix(scale, 1., sin(iTime*2.)*.5 + 0.5); // scale
 
         // translate instances
         vec3 instanceOffset = vec3(offsetX, offsetY, offsetZ);
@@ -342,7 +343,7 @@ class BubblesGrid extends Component<Props> {
     this.scene.add(this.instancedMesh);
 
     // Axes Helper
-    this.scene.add(new THREE.AxesHelper(5));
+    // this.scene.add(new THREE.AxesHelper(5));
 
     this.animate();
   }
@@ -412,7 +413,7 @@ class BubblesGrid extends Component<Props> {
             pointerEvents: "none",
           }}
         >
-          FPS: {this.state.fps}
+          {/*  FPS: {this.state.fps} */}
         </div>
       </>
     );
