@@ -1,29 +1,13 @@
-import { CustomAudioAnalyzer } from "@/lib/audio";
 import { Component } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { Props as WnampProps } from "@/components/mic/winamp";
-
-export const CONFIG = {
-  // mode: "winamp",
-  barsCount: 64,
-  hanningWindow: false,
-  linearScale: 0.99,
-  smoothingAlpha: 0.5,
-  bufferSize: 1024 * 1,
-} as WnampProps;
 
 interface MaterialWithShaderUniforms extends THREE.Material {
   userData: {
     shader?: {
       uniforms?: {
-        cover1?: { value: THREE.Texture };
-        cover2?: { value: THREE.Texture };
+        uRandomTex?: { value: THREE.Texture };
         iTime?: { value: number };
-        rms?: { value: number };
-        kick?: { value: number };
-        kickCount?: { value: number };
-        bars?: { value: number[] };
       };
     };
   };
@@ -39,7 +23,6 @@ interface Props {
     freqBins: Uint8Array;
   };
   tempo: number;
-  covers: string[];
 }
 
 class BubblesGrid extends Component<Props> {
@@ -56,70 +39,10 @@ class BubblesGrid extends Component<Props> {
   frames: number = 0;
   fps: number = 0;
   state = { fps: 0 };
-  private aa = new CustomAudioAnalyzer();
-  loadedTexture2?: THREE.Texture;
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.58;
-    this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);
-    if (this.props.covers[0] && this.props.covers[1]) {
-      this.loadTextures();
-    }
-  }
-
-  componentDidUpdate(prevProps: Readonly<Props>): void {
-    if (prevProps.covers[0] !== this.props.covers[0]) {
-      this.loadTextures();
-    }
-  }
-
-  loadTextures() {
-    this.loadedTexture = undefined;
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      this.props.covers[0].replace(
-        "files/",
-        "http://localhost:8080/resize_image/file/"
-      ),
-      (texture) => {
-        texture.minFilter = THREE.NearestFilter;
-        texture.magFilter = THREE.NearestFilter;
-        texture.wrapS = THREE.ClampToEdgeWrapping;
-        texture.wrapT = THREE.ClampToEdgeWrapping;
-        this.loadedTexture = texture;
-        loader.load(
-          this.props.covers[1].replace(
-            "files/",
-            "http://localhost:8080/resize_image/file/"
-          ),
-          (texture) => {
-            texture.minFilter = THREE.NearestFilter;
-            texture.magFilter = THREE.NearestFilter;
-            texture.wrapS = THREE.ClampToEdgeWrapping;
-            texture.wrapT = THREE.ClampToEdgeWrapping;
-            this.loadedTexture2 = texture;
-            if (
-              this.loadedTexture &&
-              this.loadedTexture2 &&
-              this.instancedMesh &&
-              this.instancedMesh.material
-            ) {
-              const mat = this.instancedMesh
-                .material as MaterialWithShaderUniforms;
-              const shaderUniforms = mat.userData?.shader?.uniforms;
-              if (shaderUniforms && shaderUniforms.cover1) {
-                shaderUniforms.cover1.value = this.loadedTexture;
-              }
-              if (shaderUniforms && shaderUniforms.cover2) {
-                shaderUniforms.cover2.value = this.loadedTexture2;
-              }
-            }
-          }
-        );
-      }
-    );
   }
 
   componentWillUnmount() {
@@ -198,6 +121,22 @@ class BubblesGrid extends Component<Props> {
     this.randomTexture.wrapS = THREE.ClampToEdgeWrapping;
     this.randomTexture.wrapT = THREE.ClampToEdgeWrapping;
 
+    // Optionally load an external texture but do not use it
+    this.loadedTexture = undefined;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      // "http://localhost:8080/files/images/example256x256.png",
+      "http://localhost:8080/resize_image/file/cover/2QtJA4gbwe1AcanB2p21aP_0_anim.png",
+      (texture) => {
+        texture.minFilter = THREE.NearestFilter;
+        texture.magFilter = THREE.NearestFilter;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        this.loadedTexture = texture;
+        // Not used in material, just loaded and stored
+      }
+    );
+
     // Geometry
     const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
     // const geometry = new THREE.SphereGeometry(cubeSize, 8, 8);
@@ -215,26 +154,16 @@ class BubblesGrid extends Component<Props> {
       material.userData.shader = shader;
       shader.uniforms.uGridSize = { value: parseFloat(gridSize + "") };
       shader.uniforms.uSpacing = { value: spacing };
-      shader.uniforms.cover1 = { value: this.randomTexture };
-      shader.uniforms.cover2 = { value: this.randomTexture };
+      shader.uniforms.uRandomTex = { value: this.randomTexture };
       shader.uniforms.iTime = { value: 0 };
-      shader.uniforms.rms = { value: 0 };
-      shader.uniforms.kick = { value: 0 };
-      shader.uniforms.kickCount = { value: 0 };
-      shader.uniforms.bars = { value: this.props.bars };
       shader.vertexShader =
         `
         uniform float uGridSize;
         uniform float uSpacing;
-        uniform sampler2D cover1;
-        uniform sampler2D cover2;
+        uniform sampler2D uRandomTex;
         uniform float iTime;
-        uniform float rms;
-        uniform float kick;
-        uniform float kickCount;
         varying vec3 vInstancePosition;
         varying vec2 vGridUV;
-        uniform float bars[7];
       ` + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
         "#include <begin_vertex>",
@@ -243,57 +172,27 @@ class BubblesGrid extends Component<Props> {
         float instanceId = float(gl_InstanceID);
         float ix = mod(instanceId, uGridSize);
         float iz = floor(instanceId / uGridSize);
-
-        float offsetX = (ix - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.03);
-        float offsetZ = (iz - uGridSize / 2.0 + 0.5) * (uSpacing + kick *.03);
-
+        float offsetX = (ix - uGridSize / 2.0 + 0.5) * uSpacing;
+        float offsetZ = (iz - uGridSize / 2.0 + 0.5) * uSpacing;
         vec2 gridUV = vec2(ix / (uGridSize - 1.0), iz / (uGridSize - 1.0));
-        vec3 texColor = texture2D(cover1, gridUV).rgb;
-        vec3 texColor2 = texture2D(cover2, gridUV).rgb;
+        vec3 texColor = texture2D(uRandomTex, gridUV).rgb;
 
-        float kickDirection = 1.;
         // basic vertical offset
-        float offsetY1 = - texColor.b * 3.0;
-        float offsetY2 = - texColor2.b * 3.0;
-        float offsetY = 0.;
+        float offsetY = - texColor.b * 3.0;
 
-        if (mod(kickCount, 2.0) == 0.0) {
-          kickDirection = -1.;
-          offsetY = mix(offsetY1, offsetY2, kick);
-        } else {
-          kickDirection = 1.;
-          offsetY = mix(offsetY2, offsetY1, kick);
-        }
-
-
-        float rippleDist = abs(length(vec2(ix - uGridSize / 2.0 + 40.*kick*kickDirection + iz/10., iz - uGridSize / 2.0 + 40.*kick*kickDirection)) - 100.);
+        float rippleDist = abs(length(vec2(ix - uGridSize / 2.0, iz - uGridSize / 2.0)) - 100.);
 
         float globalWave = sin(ix/35. + iTime)*1. + sin(iz/30. - iTime)*1.;
-        float middleWave = rippleDist * (0.1 + sin(iTime * 2.0 + iz/20.) * 0.01);
+        float middleWave = rippleDist * (0.1 + sin(iTime * 2.0 + iz/20.) * 0.03);
         float rippleWave = sin(rippleDist * .15 - iTime * 2.0) * exp(-rippleDist * 0.02);
-
-        float radius = .2 + abs(bars[1])*.9;// + sin(iTime * 2.0 + ix/70.) * 0.1 + (kick * 0.1 * kickDirection);
-        float maxHeight = 3.;
-        float distance = radius - length(gridUV -.5);// - vec2(bars[0]*1.7, bars[2]*1.7));
-        float thickness = 0.03;
-        float fade = 0.01 + .1*bars[0];
-        float circle = smoothstep(0.0, fade, distance);
-        circle *= smoothstep(thickness + fade, thickness, distance);
-        float blobWave = circle * maxHeight;
 
         // additonal dynamical offsets
         offsetY += globalWave;
-        if (kickDirection == 1.) {
-          offsetY += rippleWave * (1.2 + kick * 3.5);
-        } else {
-          offsetY += middleWave * kickDirection * (1. + kick) ;
-        }
-        offsetY -= blobWave;
-
-
+        offsetY += rippleWave * 2.2;
+        offsetY -= middleWave;
 
         // scale instances
-        float scale = max(0.2, 1. - .05/pow(texColor.b, 1.9));// + kick));
+        float scale = max(0.2, 1. - .05/pow(texColor.b, 1.9));
         transformed *= mix(scale, 1., sin(iTime*2.)*.5 + 0.5); // scale
 
         // translate instances
@@ -308,26 +207,15 @@ class BubblesGrid extends Component<Props> {
         `
         uniform float uGridSize;
         uniform float uSpacing;
-        uniform sampler2D cover1;
-        uniform sampler2D cover2;
-        uniform float iTime;
-        uniform float kick;
-        uniform float kickCount;
+        uniform sampler2D uRandomTex;
         varying vec3 vInstancePosition;
         varying vec2 vGridUV;
       ` + shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         "vec4 diffuseColor = vec4( diffuse, opacity );",
         `
-        vec3 texColor = texture2D(cover1, vGridUV).rgb * 1.5;
-        vec3 texColor2 = texture2D(cover2, vGridUV).rgb * 1.5;
-        vec3 color = vec3(0.);
-        if (mod(kickCount, 2.0) == 0.0) {
-          color = mix(texColor, texColor2, kick);
-        } else {
-          color = mix(texColor2, texColor, kick);
-        }
-        vec4 diffuseColor = vec4(color, opacity);
+        vec3 texColor = texture2D(uRandomTex, vGridUV).rgb * 1.5;
+        vec4 diffuseColor = vec4(texColor, opacity);
         `
       );
     };
@@ -344,11 +232,25 @@ class BubblesGrid extends Component<Props> {
     // Axes Helper
     this.scene.add(new THREE.AxesHelper(5));
 
+    // After 3 seconds, swap uRandomTex to loadedTexture if available
+    setTimeout(() => {
+      if (
+        this.loadedTexture &&
+        this.instancedMesh &&
+        this.instancedMesh.material
+      ) {
+        const mat = this.instancedMesh.material as MaterialWithShaderUniforms;
+        const shaderUniforms = mat.userData?.shader?.uniforms;
+        if (shaderUniforms && shaderUniforms.uRandomTex) {
+          shaderUniforms.uRandomTex.value = this.loadedTexture;
+        }
+      }
+    }, 100);
+
     this.animate();
   }
 
   animate = () => {
-    this.aa.setRms(this.props.rms);
     this.animationId = requestAnimationFrame(this.animate);
     this.controls?.update();
     if (this.instancedMesh && this.instancedMesh.material) {
@@ -356,18 +258,6 @@ class BubblesGrid extends Component<Props> {
       const shaderUniforms = mat.userData?.shader?.uniforms;
       if (shaderUniforms && shaderUniforms.iTime) {
         shaderUniforms.iTime.value = performance.now() / 1000.0;
-      }
-      if (shaderUniforms && shaderUniforms.rms) {
-        shaderUniforms.rms.value = this.props.rms;
-      }
-      if (shaderUniforms && shaderUniforms.kick) {
-        shaderUniforms.kick.value = this.aa.kick;
-      }
-      if (shaderUniforms && shaderUniforms.kickCount) {
-        shaderUniforms.kickCount.value = this.aa.kickCount;
-      }
-      if (shaderUniforms && shaderUniforms.bars) {
-        shaderUniforms.bars.value = this.props.bars;
       }
     }
     if (this.renderer && this.scene && this.camera) {

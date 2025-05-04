@@ -22,7 +22,8 @@ import { Strategy as SpotifyStrategy } from "passport-spotify";
 import SpotifyWebApi from "spotify-web-api-node";
 import DatabaseManager from "./utils/db";
 import { backlightRouter } from "./api/backlight/backlightRouter";
-import { captureRouter } from "./api/capture/captureRouter"
+import { captureRouter } from "./api/capture/captureRouter";
+import { imageResizeRouter } from "./api/imageResize/imageResizeRouter";
 
 var spotifyApi = new SpotifyWebApi({});
 
@@ -123,6 +124,7 @@ app.use("/files", asyncHandler(filesRouter));
 app.use("/history", asyncHandler(historyRouter));
 app.use("/backlight", asyncHandler(backlightRouter));
 app.use("/capture", asyncHandler(captureRouter));
+app.use("/resize_image", asyncHandler(imageResizeRouter));
 
 // Swagger UI
 app.use(openAPIRouter);

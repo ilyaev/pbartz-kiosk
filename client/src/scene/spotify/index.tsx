@@ -19,7 +19,8 @@ import FreqBarsStrict, {
 import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
 import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
-import {mapRange} from "@/lib/utils";
+import TiltScene, { CONFIG as TiltConfig } from "./visuals/tilt";
+import { mapRange } from "@/lib/utils";
 import ServerSensors from "@/lib/sensors";
 
 let nextLoad: number;
@@ -27,13 +28,13 @@ let changeInterval: number;
 let syncInterval: number;
 let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 
-const DEBUG = false;
+const DEBUG = true;
 
 const AvailableVisuals = DEBUG
-  ? [DebugConsole]
+  ? [TiltScene]
   : [Stars, CityGrid, SpheresPool, EQ3D, DiscoRoom, FreqBarsStrict, TubesTape];
 const VisualsConfig = DEBUG
-  ? [DebugConfig]
+  ? [TiltConfig]
   : [
       StarsConfig,
       CityGridConfig,
@@ -93,7 +94,7 @@ interface State {
   cover1: string;
   cover2: string;
   currentCover: number;
-  debug: string
+  debug: string;
 }
 
 let isMounted = false;
@@ -108,16 +109,15 @@ class SpotifyScene extends Component<Props, State> {
     cover1: "",
     cover2: "",
     currentCover: 0,
-    debug: "empty"
+    debug: "empty",
   };
 
   volume: number = 0;
   captureValue: number = 100;
   sensors: ServerSensors = new ServerSensors({
-    callback: (data: number[]) => {
-
-    }})
-    debug: string = ''
+    callback: (data: number[]) => {},
+  });
+  debug: string = "";
 
   colors?: {
     primary: string;
@@ -147,8 +147,7 @@ class SpotifyScene extends Component<Props, State> {
 
     syncInterval = setInterval(() => {
       this.sensors.syncCaptureLevel(this.captureValue);
-    }, 5 * 1000)
-
+    }, 5 * 1000);
 
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
@@ -180,10 +179,10 @@ class SpotifyScene extends Component<Props, State> {
     }
 
     this.volume = myState.device.volume_percent;
-    this.captureValue = Math.round(this.volume > 20 ? 100 - mapRange(this.volume, 30, 100, 15, 90) : 100)
-    this.setState({ player: myState, cover: "", cover2: "", debug: '' });
-
-
+    this.captureValue = Math.round(
+      this.volume > 20 ? 100 - mapRange(this.volume, 30, 100, 15, 90) : 100
+    );
+    this.setState({ player: myState, cover: "", cover2: "", debug: "" });
 
     const tout = myState.item.duration_ms - (myState.progress_ms || 0) + 1000;
 
@@ -325,7 +324,11 @@ class SpotifyScene extends Component<Props, State> {
             width: "100%",
           }}
         >
-        {DEBUG && <div>{this.volume} - {this.captureValue}</div>}
+          {DEBUG && (
+            <div>
+              {this.volume} - {this.captureValue}
+            </div>
+          )}
           {DEBUG || this.renderHeader()}
           {DEBUG || this.renderFooter()}
         </div>
@@ -382,6 +385,12 @@ class SpotifyScene extends Component<Props, State> {
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
+          covers={[
+            this.state.cover1,
+            this.state.cover2,
+            // "http://localhost:8080/resize_image/file/cover/5PeJhKyPdS7xF9dijXjiJl_2_anim.png",
+            // "http://localhost:8080/resize_image/file/cover/5PeJhKyPdS7xF9dijXjiJl_2_anim_2.png",
+          ]}
         />
       </Mic>
     );
