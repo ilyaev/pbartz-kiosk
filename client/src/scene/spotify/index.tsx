@@ -31,13 +31,22 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  // ? [TiltScene]
-  ? [DebugConsole]
-  : [TiltScene,Stars, CityGrid, SpheresPool, EQ3D, DiscoRoom, FreqBarsStrict, TubesTape];
+  ? [TiltScene]
+  : //  [DebugConsole]
+    [
+      TiltScene,
+      Stars,
+      CityGrid,
+      SpheresPool,
+      EQ3D,
+      DiscoRoom,
+      FreqBarsStrict,
+      TubesTape,
+    ];
 const VisualsConfig = DEBUG
-  // ? [TiltConfig]
-  ? [DebugConfig]
-  : [
+  ? [TiltConfig]
+  : //  [DebugConfig]
+    [
       TiltConfig,
       StarsConfig,
       CityGridConfig,
@@ -149,7 +158,7 @@ class SpotifyScene extends Component<Props, State> {
     nextChange = Date.now() + SPOTIFY.albumCoverDuration;
 
     syncInterval = setInterval(() => {
-      this.sensors.syncCaptureLevel(this.captureValue);
+      // this.sensors.syncCaptureLevel(this.captureValue);
     }, 5 * 1000);
 
     changeInterval = setInterval(() => {
@@ -332,7 +341,7 @@ class SpotifyScene extends Component<Props, State> {
               {this.volume} - {this.captureValue}
             </div>
           )}
-          {DEBUG || this.renderHeader()}
+          {DEBUG || this.state.equlizer || this.renderHeader()}
           {DEBUG || this.renderFooter()}
         </div>
         {this.state.equlizer
@@ -375,16 +384,16 @@ class SpotifyScene extends Component<Props, State> {
 
     const config: WinampProps =
       VisualsConfig[this.state.vizIndex] || ({} as WinampProps);
-
     return config.mode && config.mode === "winamp" ? (
-      <WinampMic magnitude={2} {...config} volume={volume}>
+      <WinampMic
+        magnitude={this.state.player.device.name === "jupiter" ? 5 : 1}
+        {...config}
+        volume={volume}
+      >
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
-          covers={[
-            this.state.cover1,
-            this.state.cover2,
-          ]}
+          covers={[this.state.cover1, this.state.cover2]}
         />
       </WinampMic>
     ) : (
@@ -392,10 +401,7 @@ class SpotifyScene extends Component<Props, State> {
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
-          covers={[
-            this.state.cover1,
-            this.state.cover2,
-          ]}
+          covers={[this.state.cover1, this.state.cover2]}
         />
       </Mic>
     );
@@ -453,6 +459,62 @@ class SpotifyScene extends Component<Props, State> {
   }
 
   renderFooter() {
+    if (this.state.equlizer) {
+      return (
+        <div
+          key={"footer"}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            width: "98%",
+            height: "16%",
+            backgroundColor:
+              this.state.track.image && !this.state.equlizer
+                ? ColorConverter(
+                    this.state.track.image.colors.background
+                  ).rgba.replace("1)", "0.7)")
+                : "rgba(0, 0, 0, 0.7)",
+            paddingLeft: "20px",
+            borderRadius: "10px",
+            margin: "10px",
+            display: "flex",
+            alignItems: "start",
+            justifyContent: "start",
+            color: "white",
+            zIndex: 100002,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "3.2em",
+                fontWeight: "bold",
+                display: "flex",
+                color:
+                  this.state.track.image && !this.state.equlizer
+                    ? this.textColors!.primary
+                    : "white",
+              }}
+            >
+              {this.state.player?.item?.name.split("/")[0].slice(0, 37)}
+            </div>
+            <div
+              style={{
+                fontSize: "2.4em",
+                marginTop: "-20px",
+                display: "flex",
+                color:
+                  this.state.track.image && !this.state.equlizer
+                    ? this.textColors!.primary
+                    : "white",
+              }}
+            >
+              {this.state.player?.item?.artists[0].name}
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         key={"footer"}

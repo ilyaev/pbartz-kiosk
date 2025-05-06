@@ -182,9 +182,12 @@ class BubblesGrid extends Component<Props> {
     const size = gridSize * gridSize * 4;
     const data = new Uint8Array(size);
     for (let i = 0; i < size; i += 4) {
-      data[i] = Math.floor(Math.random() * 256); // R
-      data[i + 1] = Math.floor(Math.random() * 256); // G
-      data[i + 2] = Math.floor(Math.random() * 256); // B
+      // data[i] = Math.floor(Math.random() * 256); // R
+      // data[i + 1] = Math.floor(Math.random() * 256); // G
+      // data[i + 2] = Math.floor(Math.random() * 256); // B
+      data[i] = 128; // R
+      data[i + 1] = 128;
+      data[i + 2] = 128; // G
       data[i + 3] = 255; // A
     }
     this.randomTexture = new THREE.DataTexture(
@@ -276,8 +279,9 @@ class BubblesGrid extends Component<Props> {
         float rippleWave = sin(rippleDist * .15 - iTime * 2.0 + rms*4.) * exp(-rippleDist * 0.02);
 
         float radius = .2 + abs(bars[1])*.2;// + sin(iTime * 2.0 + ix/70.) * 0.1 + (kick * 0.1 * kickDirection);
-        float maxHeight = 2.;
-        float distance = radius - length(gridUV -.5);// - vec2(bars[1]*.3, bars[2]*.2));
+        float maxHeight = 1. + rms;
+        vec2 circleCenter = vec2(0.5 + sin(iTime)*.2, 0.5 + cos(iTime)*.2);
+        float distance = radius - length(gridUV - circleCenter);// - vec2(bars[1]*.3, bars[2]*.2));
         float thickness = 0.03;
         float fade = 0.005 + .1*bars[2];
         float circle = smoothstep(0.0, fade, distance);
@@ -297,7 +301,7 @@ class BubblesGrid extends Component<Props> {
 
         // scale instances
         float scale = max(0.2, 1. - .05/pow(texColor.b, 1.9));// + kick));
-        transformed *= 1.;//mix(scale, 1., sin(iTime*2.)*.5 + 0.5); // scale
+        transformed *= 1.;// mix(scale, 1., sin(iTime*2.)*.5 + 0.5 + bars[1]*3.); // scale
 
         // translate instances
         vec3 instanceOffset = vec3(offsetX, offsetY, offsetZ);
@@ -342,6 +346,7 @@ class BubblesGrid extends Component<Props> {
       instanceCount
     );
     this.instancedMesh.rotateX(Math.PI);
+    this.instancedMesh.position.y = 3;
     this.scene.add(this.instancedMesh);
 
     // Axes Helper
@@ -394,7 +399,13 @@ class BubblesGrid extends Component<Props> {
       1
     );
 
-    this.instancedMesh!.rotation.y = (Math.PI / 8) * deltaTime;
+    // this.instancedMesh!.rotation.y = (Math.PI / 8) * deltaTime;
+    this.instancedMesh!.rotation.y =
+      (Math.sin(iTime * 0.3) * 0.5 + 0.5) * Math.PI * 2;
+
+    this.instancedMesh!.position.y = 3 + Math.abs(Math.sin(iTime * 0.5)) * 3;
+    // this.instancedMesh!.rotation.x =
+    //   ((Math.sin(iTime * 0.3) * 0.5 + 0.5) * Math.PI) / 10;
 
     // FPS calculation
     this.frames++;
