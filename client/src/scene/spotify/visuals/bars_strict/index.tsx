@@ -9,8 +9,8 @@ export const CONFIG = {
   barsCount: 32,
   // hanningWindow: false,
   linearScale: 0.95,
-  smoothingAlpha: 0.5,
-  bufferSize: 1024 * 4,
+  smoothingAlpha: 0.8,
+  bufferSize: 1024 * 2,
 } as WnampProps;
 
 const SHOW_FPS = false;
@@ -65,8 +65,8 @@ class ScreenViz extends Component<Props> {
     this.plane.material.uniforms.iTime.value =
       (Date.now() - ScreenViz.now) / 1000;
     this.plane.material.uniforms.bars.value =
-      this.props.bars!.map(bv => {
-        return bv
+      this.props.bars!.map((bv) => {
+        return bv;
         // return this.props.volume! < 50 ? bv * ((50 - this.props.volume!) / 7) : bv
       }) || new Array(32).fill(0); // Update bars uniform
 

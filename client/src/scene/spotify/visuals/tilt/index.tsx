@@ -154,6 +154,7 @@ class BubblesGrid extends Component<Props> {
       1000
     );
     this.camera.position.set(-28, 30, 1);
+    this.camera.lookAt(0, 0, 0);
     this.camera.fov = 15;
     // this.camera.rotateX(Math.PI / 12);
 
@@ -165,9 +166,10 @@ class BubblesGrid extends Component<Props> {
 
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.target.set(0, 0, 0);
-    this.controls.autoRotate = true;
+    // this.controls.enableDamping = true;
+    // this.controls.target.set(0, 0, 0);
+    // this.controls.enabled = false;
+    // this.controls.autoRotate = true;
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x606060);
@@ -269,12 +271,12 @@ class BubblesGrid extends Component<Props> {
 
         float rippleDist = abs(length(vec2(ix - uGridSize / 2.0 + 40.*kick*kickDirection + iz/10., iz - uGridSize / 2.0 + 40.*kick*kickDirection)) - 100.);
 
-        float globalWave = sin(ix/35. + iTime)*1. + sin(iz/30. - iTime)*1.;
-        float middleWave = rippleDist * (0.1 + sin(iTime * 2.0 + iz/20.) * 0.01);
-        float rippleWave = sin(rippleDist * .15 - iTime * 2.0) * exp(-rippleDist * 0.02);
+        float globalWave = sin(ix/35. + iTime)*1. + sin(iz/30. - iTime + rms*2.)*1.;
+        float middleWave = rippleDist * (0.1 + sin(iTime * 2.0 + iz/20. + rms*3.) * 0.01);
+        float rippleWave = sin(rippleDist * .15 - iTime * 2.0 + rms*4.) * exp(-rippleDist * 0.02);
 
         float radius = .2 + abs(bars[1])*.2;// + sin(iTime * 2.0 + ix/70.) * 0.1 + (kick * 0.1 * kickDirection);
-        float maxHeight = 3.;
+        float maxHeight = 2.;
         float distance = radius - length(gridUV -.5);// - vec2(bars[1]*.3, bars[2]*.2));
         float thickness = 0.03;
         float fade = 0.005 + .1*bars[2];
@@ -351,12 +353,17 @@ class BubblesGrid extends Component<Props> {
   animate = () => {
     this.aa.setRms(this.props.rms);
     this.animationId = requestAnimationFrame(this.animate);
-    this.controls?.update();
+
+    const now = performance.now();
+    const iTime = now / 1000.0;
+    const deltaTime = (now - this.lastFrameTime) / 1000;
+
+    // this.controls?.update();
     if (this.instancedMesh && this.instancedMesh.material) {
       const mat = this.instancedMesh.material as MaterialWithShaderUniforms;
       const shaderUniforms = mat.userData?.shader?.uniforms;
       if (shaderUniforms && shaderUniforms.iTime) {
-        shaderUniforms.iTime.value = performance.now() / 1000.0;
+        shaderUniforms.iTime.value = iTime;
       }
       if (shaderUniforms && shaderUniforms.rms) {
         shaderUniforms.rms.value = this.props.rms;
@@ -374,10 +381,25 @@ class BubblesGrid extends Component<Props> {
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
     }
+
+    // this.camera?.rotateY(0.1);
+    this.camera?.lookAt(
+      Math.cos(iTime) * 20,
+      Math.sin(iTime) * 10,
+      Math.sin(iTime) * 10
+    );
+    this.camera?.position.set(
+      -28 + Math.cos(iTime) * 5,
+      20 + Math.sin(iTime) * 5,
+      1
+    );
+
+    this.instancedMesh!.rotation.y = (Math.PI / 8) * deltaTime;
+
     // FPS calculation
     this.frames++;
-    const now = performance.now();
-    if (now - this.lastFrameTime >= 1000) {
+
+    if (deltaTime >= 1000) {
       this.fps = this.frames;
       this.frames = 0;
       this.lastFrameTime = now;

@@ -89,11 +89,7 @@ class Mic extends Component<Props, State> {
 
   connectToAudioStream() {
     navigator.mediaDevices
-      .getUserMedia({ audio: {
-                        autoGainControl: false,
-                        noiseSuppression: false,
-                        echoCancellation: false
-                    } })
+      .getUserMedia({ audio: true })
       .then((stream) => {
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.analyser = this.audioContext.createAnalyser();
@@ -131,8 +127,27 @@ class Mic extends Component<Props, State> {
         ? hanningWindow(this.buffer)
         : this.buffer;
 
+      const bufferSource = this.audioContext.createBufferSource();
+      const audioBuffer = this.audioContext.createBuffer(
+        1,
+        this.bufferSize,
+        this.audioContext.sampleRate
+      );
+      audioBuffer.getChannelData(0).set(this.buffer);
+      bufferSource.buffer = audioBuffer;
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = 0;
+      bufferSource.connect(gainNode);
+      gainNode.connect(this.analyser);
+      bufferSource.start(0);
+
       const bars = this.calculateFrequencyBars();
-      const rms = calculateRMS(this.floatBuffer);
+      if (this.props.magnitude && this.props.magnitude !== 1) {
+        for (let i = 0; i < bars.length; i++) {
+          bars[i] *= this.props.magnitude;
+        }
+      }
+      const rms = calculateRMS(this.floatBuffer) * (this.props.magnitude || 1);
       const zcr = calculateZCR(this.floatBuffer);
 
       const freqLevel = this.calculateFrequencyLevels();
