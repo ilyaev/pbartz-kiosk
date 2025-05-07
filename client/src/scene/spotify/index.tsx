@@ -158,8 +158,8 @@ class SpotifyScene extends Component<Props, State> {
     nextChange = Date.now() + SPOTIFY.albumCoverDuration;
 
     syncInterval = setInterval(() => {
-      // this.sensors.syncCaptureLevel(this.captureValue);
-    }, 5 * 1000);
+      this.sensors.syncCaptureLevel(this.captureValue);
+    }, 3 * 1000);
 
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
@@ -192,7 +192,7 @@ class SpotifyScene extends Component<Props, State> {
 
     this.volume = myState.device.volume_percent;
     this.captureValue = Math.round(
-      this.volume > 20 ? 100 - mapRange(this.volume, 30, 100, 15, 90) : 100
+      this.volume > 20 ? 100 - mapRange(this.volume, 37, 100, 15, 90) : 100
     );
     this.setState({ player: myState, cover: "", cover2: "", debug: "" });
 

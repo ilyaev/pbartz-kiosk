@@ -60,7 +60,7 @@ class BubblesGrid extends Component<Props> {
   loadedTexture2?: THREE.Texture;
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.85;
+    this.aa.kickThreshold = 0.45;
     this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);

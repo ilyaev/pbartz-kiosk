@@ -45,7 +45,7 @@ class Visualizer extends Component<Props, State> {
       highTrails: [],
     };
 
-    this.aa.kickThreshold = 0.58;
+    this.aa.kickThreshold = 0.48;
     this.aa.kickLag = 100;
     this.aa.onKick = () => {
       console.log("Kick detected!", this.props.rms);
