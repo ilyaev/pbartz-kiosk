@@ -20,6 +20,7 @@ import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
 import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
 import TiltScene, { CONFIG as TiltConfig } from "./visuals/tilt";
+import TiltScene2, { CONFIG as TiltConfig2 } from "./visuals/tilt/index3";
 import { mapRange } from "@/lib/utils";
 import ServerSensors from "@/lib/sensors";
 
@@ -31,10 +32,10 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [TiltScene]
+  ? [TiltScene2]
   : //  [DebugConsole]
     [
-      TiltScene,
+      TiltScene2,
       Stars,
       CityGrid,
       SpheresPool,
@@ -44,10 +45,10 @@ const AvailableVisuals = DEBUG
       TubesTape,
     ];
 const VisualsConfig = DEBUG
-  ? [TiltConfig]
+  ? [TiltConfig2]
   : //  [DebugConfig]
     [
-      TiltConfig,
+      TiltConfig2,
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,

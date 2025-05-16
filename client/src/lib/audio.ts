@@ -9,6 +9,7 @@ export class CustomAudioAnalyzer {
   deltaTime: number = 0;
   lastTimeStamp: number = 0;
   kickCount: number = 0;
+  allRms: number = 0;
 
   levels: {
     low: number[];
@@ -45,6 +46,7 @@ export class CustomAudioAnalyzer {
   setRms(rms: number) {
     this.deltaTime = Date.now() - this.lastTimeStamp;
     this.lastTimeStamp = Date.now();
+    this.allRms += rms;
 
     this.rms = rms;
     const now = Date.now();
