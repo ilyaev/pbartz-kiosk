@@ -10,7 +10,7 @@ import React from "react";
 export const CONFIG = {
   mode: "winamp",
   barsCount: 7,
-  bufferSize: 1024 * 4,
+  bufferSize: 1024 * 2,
   // hanningWindow: false,
   linearScale: 0.91,
   smoothingAlpha: 0.66,
@@ -276,11 +276,11 @@ class CubeGrid extends Component<Props> {
     for (let i = 0; i < 7; i++) {
       const center = new Vec3(
         (this.grid.x / 8) * (i + 1),
-        this.grid.y / 2 + Math.sin(this.iTime + i * 2) * 5,
+        this.grid.y / 2 + Math.sin(this.iTime*0. + i * 2) * 5,
         0
       );
 
-      let force = -8 + (this.props.bars![i] || 0) * 130;
+      let force = (this.props.bars![i] || 0) * 30;
       force = (force * 2) / 4;
 
       const uv = new Vec3(x, y, force);

@@ -7,9 +7,9 @@ export const CONFIG = {
   mode: "winamp",
   barsCount: 7,
   hanningWindow: false,
-  linearScale: 0.9,
-  smoothingAlpha: 0.5,
-  bufferSize: 1024 * 4,
+  linearScale: 0.95,
+  smoothingAlpha: 0.65,
+  bufferSize: 1024 * 2,
 } as any;
 
 

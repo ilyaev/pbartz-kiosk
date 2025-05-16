@@ -356,11 +356,11 @@ class TubesTape extends Component<Props> {
     this.camera!.position.y =
       -70 + Math.cos(this.iTime + this.props.rms! * 5) * 3;
 
-    this.spotlight.color.setHSL(
-      (this.props.rms! / 2) * 200.1,
-      (this.props.rms! / 2) * 100.1,
-      (this.props.rms! / 2) * 100.1
-    );
+    // this.spotlight.color.setHSL(
+    //   (this.props.rms! / 2) * 1200.1,
+    //   (this.props.rms! / 2) * 10.1,
+    //   (this.props.rms! / 2) * 100.1
+    // );
 
     const scanlinePass = this.composer!.passes.find(
       (pass) => pass instanceof ShaderPass && pass.uniforms.time !== undefined

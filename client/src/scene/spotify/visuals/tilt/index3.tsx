@@ -67,7 +67,7 @@ class BubblesGrid extends Component<Props> {
   cameraFlyBy?: CameraFlyBy;
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.5;
+    this.aa.kickThreshold = 0.4;
     this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);
@@ -297,10 +297,10 @@ class BubblesGrid extends Component<Props> {
 
         // displacement
         offsetY -= texCanvas.r * (20. - (sin(iTime)*.5 + .5)*15.);
-        offsetY += noise3d(vec3(gridUV*5. + allrms*.02, allrms*.01)) * noiseMaxHeight;
+        offsetY += noise3d(vec3(gridUV*5. + allrms*.2, allrms*.1)) * noiseMaxHeight;
 
         // scale instances
-        float scale = (3. + sin(iTime)*2.) * texCanvas.r;
+        float scale = (2. + (sin(iTime)*.5 + .5)*2.) * texCanvas.r;
         transformed *= scale;
 
         // translate instances
@@ -451,7 +451,7 @@ class BubblesGrid extends Component<Props> {
             pointerEvents: "none",
           }}
         />
-        {/* <canvas
+         {/* <canvas
           ref={(ref) => (this.canvasRef = ref)}
           style={{
             position: "absolute",

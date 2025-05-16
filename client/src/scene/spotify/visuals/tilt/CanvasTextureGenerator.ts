@@ -6,7 +6,7 @@ class CanvasTextureGenerator {
   private circleRadius: number = 30;
   private backgroundColor: string = "rgb(0, 0, 0)";
   private feedbackOpacity: number = 0.99;
-  private feedbackScaleFactor: number = 1.01;
+  private feedbackScaleFactorBase: number = 1.05;
   private feedbackBlurRadius: number = 1.1;
   private feedbackRotationIncrement: number = 0;
   private currentFeedbackRotationAngle: number = 0;
@@ -31,6 +31,7 @@ class CanvasTextureGenerator {
   public kickCount: number = 0;
   public bars: number[] = [] as number[];
   public allRms: number = 0;
+  public feedbackScaleFactor: number = 0;
 
   constructor() {
     this.circleX = this.canvasSize / 2;
@@ -55,7 +56,7 @@ class CanvasTextureGenerator {
 
   public updateCanvasTexture(): void {
     this.feedbackOpacity = 0.99 + 0.2 * this.kick;
-    this.feedbackScaleFactor = 1.01 - 0.013 * this.kick;
+    this.feedbackScaleFactor = this.feedbackScaleFactorBase - 0.013 * this.kick;
     this.currentFeedbackRotationAngle =
       Math.sin(Math.PI * 2 * this.kick) * 0.01;
 

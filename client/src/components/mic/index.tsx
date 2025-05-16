@@ -63,7 +63,9 @@ class Mic extends Component<Props, State> {
 
   connectToAudioStream() {
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({ audio: {
+        autoGainControl: false
+      }})
       .then((stream) => {
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.analyser = this.audioContext.createAnalyser();
