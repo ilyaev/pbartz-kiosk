@@ -13,7 +13,12 @@ export const arrayChunk = <T>(arr: T[], chunkSize: number): T[][] => {
   return chunks;
 };
 
-
-export const mapRange = (value: number, inMin: number, inMax: number, outMin: number, outMax: number) => {
+export const mapRange = (
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+) => {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 };

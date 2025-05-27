@@ -26,7 +26,7 @@ captureRouter.get("/:value", async (req: Request, res: Response) => {
 
     if (!valueInt) {
       const res = await execCommand("amixer get 'Capture'");
-      result = (getLeftCapturePercentage(res) || '-1').replace('%','');
+      result = (getLeftCapturePercentage(res) || "-1").replace("%", "");
     } else {
       const res = await execCommand(`amixer set 'Capture' ${valueInt}%`);
       result = res;
@@ -47,7 +47,6 @@ captureRouter.get("/:value", async (req: Request, res: Response) => {
     return handleServiceResponse(serviceResponse, res);
   }
 });
-
 
 function getLeftCapturePercentage(amixerOutput: string) {
   const regex = /^\s*Front Left:.*?\[(\d+%)\]/m;

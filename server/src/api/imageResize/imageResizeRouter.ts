@@ -19,6 +19,84 @@ imageResizeRegistry.registerPath({
   responses: createApiResponse(z.null(), "Success"),
 });
 
+imageResizeRouter.get("/url", async (req: Request, res: Response) => {
+  try {
+    const url = Object.keys(req.query)[0] || "";
+    const fileName = path.basename(url);
+    if (url.indexOf("image/") === -1) {
+      throw new Error("Invalid url parameter");
+    }
+
+    const originalPath = path.join(
+      process.env.CACHE_FILES_BASE_PATH || "",
+      "cover",
+      fileName + ".png"
+    );
+
+    const path256 = path.join(
+      process.env.CACHE_FILES_BASE_PATH || "",
+      "cover",
+      fileName + "_256.png"
+    );
+
+    let buffer: Buffer<ArrayBufferLike>;
+
+    if (fs.existsSync(path256)) {
+      res.setHeader("Content-Type", "image/png");
+      res.send(fs.readFileSync(path256));
+    } else {
+      if (fs.existsSync(originalPath)) {
+        buffer = fs.readFileSync(originalPath);
+      } else {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch image from url: ${response.statusText}`
+          );
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+        fs.writeFileSync(originalPath, buffer);
+      }
+
+      const { data, info } = await sharp(buffer)
+        .resize(256, 256, {
+          fit: "cover",
+          position: "centre",
+        })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      if (info.width !== 256 || info.height !== 256) {
+        throw new Error(
+          `Expected dimensions 256x256 but got ${info.width}x${info.height}`
+        );
+      }
+
+      const pngBuffer = await sharp(data, {
+        raw: {
+          width: info.width,
+          height: info.height,
+          channels: info.channels,
+        },
+      })
+        .png()
+        .toBuffer();
+
+      fs.writeFileSync(path256, pngBuffer);
+
+      res.setHeader("Content-Type", "image/png");
+      res.send(pngBuffer);
+    }
+  } catch (e) {
+    const serviceResponse = ServiceResponse.failure("Error", {
+      success: false,
+      error: e,
+    });
+    return handleServiceResponse(serviceResponse, res);
+  }
+});
+
 imageResizeRouter.get(
   "/file/:folder/:file",
   async (req: Request, res: Response) => {

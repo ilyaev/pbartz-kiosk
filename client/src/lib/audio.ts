@@ -10,6 +10,10 @@ export class CustomAudioAnalyzer {
   lastTimeStamp: number = 0;
   kickCount: number = 0;
   allRms: number = 0;
+  allLow: number = 0;
+  allMid: number = 0;
+  allHigh: number = 0;
+  sampleRate: number = 60;
 
   levels: {
     low: number[];
@@ -40,13 +44,15 @@ export class CustomAudioAnalyzer {
   }
 
   setFrequncyLevels(low: number, mid: number, high: number) {
-    return;
+    this.allLow += low / 128 / this.sampleRate;
+    this.allMid += mid / 128 / this.sampleRate;
+    this.allHigh += high / 128 / this.sampleRate;
   }
 
   setRms(rms: number) {
     this.deltaTime = Date.now() - this.lastTimeStamp;
     this.lastTimeStamp = Date.now();
-    this.allRms += rms;
+    this.allRms += (rms * 10) / this.sampleRate;
 
     this.rms = rms;
     const now = Date.now();

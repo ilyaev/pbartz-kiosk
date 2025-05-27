@@ -18,9 +18,19 @@ import FreqBarsStrict, {
 } from "./visuals/bars_strict";
 import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
-import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
-import TiltScene, { CONFIG as TiltConfig } from "./visuals/tilt";
+// import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
+// import TiltScene, { CONFIG as TiltConfig } from "./visuals/tilt";
 import TiltScene2, { CONFIG as TiltConfig2 } from "./visuals/tilt/index3";
+// import TiltScene3, { CONFIG as TiltConfig3 } from "./visuals/tilt/index4";
+// import TiltScene4, { CONFIG as TiltConfig4 } from "./visuals/tilt/index5";
+import DiscoWave, { CONFIG as DiscoWaveConfig } from "./visuals/disco_wave";
+import PointsCloud, {
+  CONFIG as PointsCloudConfig,
+} from "./visuals/points_cloud";
+// import PointsCube, { CONFIG as PointsCubeConfig } from "./visuals/points_cube";
+import PointsShapeMorph, {
+  CONFIG as PointsShapeMorphConfig,
+} from "./visuals/points_cube";
 import { mapRange } from "@/lib/utils";
 import ServerSensors from "@/lib/sensors";
 
@@ -32,9 +42,12 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [TiltScene2]
+  ? [PointsCloud]
   : //  [DebugConsole]
     [
+      PointsShapeMorph,
+      PointsCloud,
+      DiscoWave,
       TiltScene2,
       Stars,
       CityGrid,
@@ -45,9 +58,12 @@ const AvailableVisuals = DEBUG
       TubesTape,
     ];
 const VisualsConfig = DEBUG
-  ? [TiltConfig2]
+  ? [PointsCloudConfig]
   : //  [DebugConfig]
     [
+      PointsShapeMorphConfig,
+      PointsCloudConfig,
+      DiscoWaveConfig,
       TiltConfig2,
       StarsConfig,
       CityGridConfig,
@@ -108,6 +124,7 @@ interface State {
   cover2: string;
   currentCover: number;
   debug: string;
+  originalCover: string;
 }
 
 let isMounted = false;
@@ -123,6 +140,7 @@ class SpotifyScene extends Component<Props, State> {
     cover2: "",
     currentCover: 0,
     debug: "empty",
+    originalCover: "",
   };
 
   volume: number = 0;
@@ -160,7 +178,7 @@ class SpotifyScene extends Component<Props, State> {
 
     syncInterval = setInterval(() => {
       this.sensors.syncCaptureLevel(this.captureValue);
-    }, 3 * 1000);
+    }, 10 * 1000);
 
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
@@ -263,6 +281,10 @@ class SpotifyScene extends Component<Props, State> {
     const artist = item.artists[0].name;
     const imageUrl = item.album.images[0].url;
     const album = item.album.name;
+
+    this.setState({
+      originalCover: imageUrl,
+    });
 
     const record = await fetch(
       `${SERVER_URL}spotify/track?trackId=${encodeURIComponent(
@@ -394,6 +416,7 @@ class SpotifyScene extends Component<Props, State> {
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
+          originalCover={this.state.originalCover}
           covers={[this.state.cover1, this.state.cover2]}
         />
       </WinampMic>
@@ -402,6 +425,7 @@ class SpotifyScene extends Component<Props, State> {
         <VisualComponent
           tempo={this.state.track.tempo_bpm || 100}
           volume={volume}
+          originalCover={this.state.originalCover}
           covers={[this.state.cover1, this.state.cover2]}
         />
       </Mic>
