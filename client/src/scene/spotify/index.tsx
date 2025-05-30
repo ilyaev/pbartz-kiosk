@@ -18,16 +18,14 @@ import FreqBarsStrict, {
 } from "./visuals/bars_strict";
 import TubesTape, { CONFIG as TubesConfig } from "./visuals/tubes";
 import DiscoRoom, { CONFIG as DiscoRoomConfig } from "./visuals/lights";
-// import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
-// import TiltScene, { CONFIG as TiltConfig } from "./visuals/tilt";
-import TiltScene2, { CONFIG as TiltConfig2 } from "./visuals/tilt/index3";
-// import TiltScene3, { CONFIG as TiltConfig3 } from "./visuals/tilt/index4";
-// import TiltScene4, { CONFIG as TiltConfig4 } from "./visuals/tilt/index5";
+import DebugConsole, { CONFIG as DebugConfig } from "./visuals/rms_debug";
+import SurfaceSpotlight, {
+  CONFIG as SurfaceSpotlightConfig,
+} from "./visuals/tilt/index3";
 import DiscoWave, { CONFIG as DiscoWaveConfig } from "./visuals/disco_wave";
 import PointsShapes, {
   CONFIG as PointsShapesConfig,
 } from "./visuals/points_shapes";
-// import PointsCube, { CONFIG as PointsCubeConfig } from "./visuals/points_cube";
 import { mapRange } from "@/lib/utils";
 import ServerSensors from "@/lib/sensors";
 
@@ -40,11 +38,10 @@ const DEBUG = false;
 
 const AvailableVisuals = DEBUG
   ? [PointsShapes]
-  : //  [DebugConsole]
-    [
+  : [
       PointsShapes,
       DiscoWave,
-      TiltScene2,
+      SurfaceSpotlight,
       Stars,
       CityGrid,
       SpheresPool,
@@ -55,11 +52,10 @@ const AvailableVisuals = DEBUG
     ];
 const VisualsConfig = DEBUG
   ? [PointsShapesConfig]
-  : //  [DebugConfig]
-    [
+  : [
       PointsShapesConfig,
       DiscoWaveConfig,
-      TiltConfig2,
+      SurfaceSpotlightConfig,
       StarsConfig,
       CityGridConfig,
       SpheresPoolConfig,
@@ -120,6 +116,7 @@ interface State {
   currentCover: number;
   debug: string;
   originalCover: string;
+  debugScene?: boolean;
 }
 
 let isMounted = false;
@@ -128,7 +125,7 @@ class SpotifyScene extends Component<Props, State> {
   state = {
     player: {} as ExtendedCurrentlyPlaying,
     track: {} as TrackData,
-    equlizer: false,
+    equlizer: true,
     vizIndex: 1,
     cover: "",
     cover1: "",
@@ -136,12 +133,13 @@ class SpotifyScene extends Component<Props, State> {
     currentCover: 0,
     debug: "empty",
     originalCover: "",
+    debugScene: false,
   };
 
   volume: number = 0;
   captureValue: number = 100;
   sensors: ServerSensors = new ServerSensors({
-    callback: (data: number[]) => {},
+    callback: () => {},
   });
   debug: string = "";
 
@@ -172,8 +170,10 @@ class SpotifyScene extends Component<Props, State> {
     nextChange = Date.now() + SPOTIFY.albumCoverDuration;
 
     syncInterval = setInterval(() => {
-      this.sensors.syncCaptureLevel(this.captureValue);
-    }, 10 * 1000);
+      if (navigator.userAgent.toLowerCase().indexOf("macintosh") === -1) {
+        this.sensors.syncCaptureLevel(this.captureValue);
+      }
+    }, 3 * 1000);
 
     changeInterval = setInterval(() => {
       if (Date.now() > nextChange) {
@@ -346,6 +346,15 @@ class SpotifyScene extends Component<Props, State> {
     return (
       <>
         <div
+          onClick={() => {
+            const isDebug =
+              (window.event as MouseEvent)?.clientX > window.innerWidth * 0.9;
+            this.setState({
+              equlizer: isDebug ? true : !this.state.equlizer,
+              vizIndex: Math.floor(Math.random() * AvailableVisuals.length),
+              debugScene: isDebug,
+            });
+          }}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -397,11 +406,16 @@ class SpotifyScene extends Component<Props, State> {
     const volume = this.state.player.device.volume_percent;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const VisualComponent: React.ComponentType<any> =
+    let VisualComponent: React.ComponentType<any> =
       AvailableVisuals[this.state.vizIndex];
 
-    const config: WinampProps =
+    let config: WinampProps =
       VisualsConfig[this.state.vizIndex] || ({} as WinampProps);
+
+    if (this.state.debugScene) {
+      config = DebugConfig as WinampProps;
+      VisualComponent = DebugConsole;
+    }
     return config.mode && config.mode === "winamp" ? (
       <WinampMic
         magnitude={this.state.player.device.name === "jupiter" ? 5 : 1}
@@ -479,6 +493,9 @@ class SpotifyScene extends Component<Props, State> {
   }
 
   renderFooter() {
+    if (this.state.debugScene) {
+      return null;
+    }
     if (this.state.equlizer) {
       return (
         <div

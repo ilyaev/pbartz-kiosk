@@ -7,7 +7,6 @@ import { setCurrentScenes } from "../store/kioskSlice";
 import { Dispatch } from "@reduxjs/toolkit";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardTile from "@/components/DashboardTile";
-import GreenMesh from "@/scene/spotify/GreenMesh";
 import Typewriter from "typewriter-effect";
 import Marquee from "react-fast-marquee";
 
@@ -50,9 +49,6 @@ class DefaultDashboard extends Component<Props> {
               Click me + {kiosk.scenes}
             </Button>
           </div>
-        </DashboardTile>
-        <DashboardTile>
-          <GreenMesh />
         </DashboardTile>
         <DashboardTile>
           <Marquee

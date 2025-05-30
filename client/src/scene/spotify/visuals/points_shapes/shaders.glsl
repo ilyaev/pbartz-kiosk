@@ -81,7 +81,7 @@ varying float distanceToCamera;
 
     // Animation and morphing parameters
     float speed = rmsSpeed * 0.5;
-    float noiseSpeed = iTime * (0.5);
+    float noiseSpeed = iTime * (0.2);
     vec2 morphLag = .1 * abs(gridUV - texture2D(noiseTexture, gridUV).xy) - .05;
 
     // Circular noise for morphing

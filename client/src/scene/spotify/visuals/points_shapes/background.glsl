@@ -85,10 +85,18 @@ void main() {
     vec3 nextBgColor = vec3(nn, fract(nn*12.22), fract(nn*123.22))*.5;
     vec3 bgColor = mix(currentBgColor, nextBgColor, fract(rmsSpeed));
 
-    // Optionally add animated background (commented out)
-    // col += bg * sin(bgColor + iTime + idx.x/3.*cos(fract(iTime*3.14) + idx.y/3.*sin(iTime*3.14)));
+    // Optionally add animated background
+    float hPos = (sin(rmsSpeed*10.) * 0.5 + 0.5) * rows;
+    float vPos = (cos(rmsSpeed) * 0.5 + 0.5) * (rows / 1.333);
     col /= bg * (bgColor*12.);
-    col += bg * bgColor;
+
+    col += (
+        float((abs(hPos - idx.x) < 1.)) * (1. - abs(hPos - idx.x))
+        + float((abs(vPos - idx.y) < 1.)) * (1. - abs(vPos - idx.y))
+    ) * bgColor * (.5 + 1.8 * kick) * bg;
+
+    // Uncomment to add background color directly
+    // col += bg * bgColor;
 
     // --- Output final color ---
     // Use the original color if not black, otherwise use the generated background

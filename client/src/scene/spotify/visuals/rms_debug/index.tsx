@@ -116,7 +116,14 @@ class Visualizer extends Component<Props, State> {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
-        ctx.fillText("Kick: " + this.aa.kick.toFixed(2), 10, 30);
+        ctx.fillText(
+          "Kick: " +
+            this.aa.kick.toFixed(2) +
+            " Threshold: " +
+            this.aa.kickThreshold.toFixed(2),
+          10,
+          30
+        );
         ctx.beginPath();
         ctx.arc(
           canvas.width / 2,

@@ -8,13 +8,13 @@ export class CustomAudioAnalyzer {
   private lastKickTime: number = 0;
   deltaTime: number = 0;
   lastTimeStamp: number = 0;
-  kickCount: number = 0;
+  kickCount: number = Math.floor(Math.random() * 1000); // Random initial value to avoid zero kick count
   allRms: number = 0;
   allLow: number = 0;
   allMid: number = 0;
   allHigh: number = 0;
   sampleRate: number = 60;
-  rmsDumping: number = 0.5; // Adjust this value to control the decay rate of the RMS velocity
+  rmsDumping: number = 0.75; // Adjust this value to control the decay rate of the RMS velocity
   prevRms: number = 0;
 
   levels: {

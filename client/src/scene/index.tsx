@@ -155,7 +155,7 @@ class DefaultDashboard extends Component<Props, State> {
       <>
         <div
           tabIndex={0}
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLDivElement>) => {
             if (e.metaKey) {
               this.changeScene(false, Scene.Spotify);
             } else {
