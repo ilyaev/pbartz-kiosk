@@ -55,6 +55,9 @@ interface MaterialWithShaderUniforms extends THREE.Material {
         cameraPos?: { value: THREE.Vector3 };
         noiseTexture?: { value: THREE.Texture };
         noiseTexture2?: { value: THREE.Texture };
+        shapePairs?: {
+          value: THREE.Vector2[];
+        };
       };
     };
   };
@@ -270,6 +273,17 @@ class BubblesGrid extends Component<Props> {
     material.onBeforeCompile = (shader) => {
       material.userData.shader = shader;
 
+      const shapePairs: THREE.Vector2[] = [];
+      let idx = 0;
+      for (let i = 0; i < 4; ++i) {
+        for (let j = 0; j < 4; ++j) {
+          if (i != j) {
+            shapePairs[idx] = new THREE.Vector2(i, j);
+            idx++;
+          }
+        }
+      }
+
       const uniforms = {
         uGridSize: parseFloat(gridSize + ""),
         uSpacing: spacing,
@@ -300,7 +314,7 @@ class BubblesGrid extends Component<Props> {
         kickCount: 0,
         bars: this.props.bars,
         cameraPos: new THREE.Vector3(),
-
+        shapePairs,
         rmsSpeed: 0,
       };
 

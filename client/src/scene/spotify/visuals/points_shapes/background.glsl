@@ -1,3 +1,6 @@
+// =====================
+// Uniforms and Varyings
+// =====================
 uniform sampler2D tDiffuse;
 uniform float rms;
 uniform float iTime;
@@ -9,76 +12,88 @@ uniform float bars[10];
 uniform sampler2D cover;
 varying vec2 vUv;
 
+// =====================
+// Utility Functions
+// =====================
+// Simple hash-based noise function for pseudo-randomness
 float n21(vec2 p) {
     return fract(sin(p.x*123.231 + p.y*4432.342)*33344.22);
 }
 
+// 2D rotation matrix (not used, but available for optional grid rotation)
 mat2 rotate2d(float angle) {
     return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
 }
 
-
+// =====================
+// Main Fragment Shader
+// =====================
 void main() {
+    // Sample the main scene texture
     vec4 color = texture2D(tDiffuse, vUv);
 
-    if (color.r == 0.0 && color.g == 0.0 && color.b == 0.0) {
+    // --- Generate pseudo-random values for grid layout and animation ---
+    float n = n21(vec2(floor(rmsSpeed), 1.));
+    float rows = floor(3. + (fract(n*10.23)*4. - 2.));
+    float nt = fract(n*1232.22)*3.;
 
-        float n = n21(vec2(floor(rmsSpeed), 1.));
-        float rows = floor(3. + (fract(n*10.23)*4. - 2.));
+    // Calculate shifting for grid animation
+    vec2 shift = vec2(sin(nt*10.)*.3, cos(nt*5.)*.3) - vec2(.14, .14);
 
-        float nt = fract(n*1232.22)*3.;
+    float speedTick = floor(rmsSpeed);
+    float phase = 1.;
 
-        vec2 shift = vec2(sin(nt*10.)*.3, cos(nt*5.)*.3) - vec2(.14, .14);
+    phase = 1.0 - 2.0 * step(0.5, mod(speedTick, 2.0));
 
-        float speedTick = floor(rmsSpeed);
-        float phase = 1.;
-        if (mod(speedTick, 2.) == 0.) {
-            phase = -1.;
-        }
+    // Alternate shift direction based on random value
+    float dir = step(0.5, fract(n*3222.3322));
+    shift += vec2(
+        (1.0 - dir) * phase * sin(fract(rmsSpeed) * 3.14/2.) * 0.2,
+        dir * phase * sin(fract(rmsSpeed) * 3.14/2.) * 0.2
+    );
 
-        if (fract(n*3222.3322) > .5) {
-            shift += vec2(phase * sin(fract(rmsSpeed)*3.14/2.)*.1, 0.);
-        }  else {
-            shift += vec2(0., phase * sin(fract(rmsSpeed)*3.14/2.)*.1);
-        }
+    // Calculate tiled UVs for grid
+    vec2 tUv = vUv * vec2(1., 1./1.333) * vec2(rows, rows) + shift;
+    // Optionally rotate the grid (commented out)
+    // tUv = rotate2d(sin(fract(iTime*(.1 + n *.3) + nt*10.33)*3.14)) * (tUv - vec2(0.5)) + vec2(0.5);
 
-        vec2 tUv = vUv * vec2(1., 1./1.333) * vec2(rows, rows) + shift;
+    // Get local UV and grid index
+    vec2 uv = fract(tUv);
+    vec2 idx = floor(tUv);
+    float id = idx.x + idx.y * rows;
 
-        // tUv = rotate2d(sin(fract(iTime*(.1 + n *.3) + nt*10.33)*3.14)) * (tUv - vec2(0.5)) + vec2(0.5);
+    // --- Determine which tile is active and apply vignette ---
+    float current = n * rows * rows;
+    float dim = sin(fract(rmsSpeed) * 3.14) * float((floor(current) == id));
 
-        vec2 uv = fract(tUv);
-        vec2 idx = floor(tUv);
-        float id = idx.x + idx.y * rows;
+    // Replace smoothstep with a simple linear falloff for vignette (faster)
+    float vignette = clamp((0.5 - distance(uv, vec2(0.5))) / 0.4, 0.0, 1.0);
+    dim *= vignette;
 
-        float current = n * rows * rows;
-        float dim = 0.;
+    // Sample cover art texture for the active tile
+    vec3 coverColor = texture2D(cover, uv).rgb * dim;
 
-        if (floor(current) == id) {
-            dim = sin(fract(rmsSpeed) * 3.14);
-        }
+    // --- Background color calculation ---
+    vec3 col = coverColor;
+    // Optimized radial falloff: avoid pow and abs, use squared distance
+    float d = length(vUv / 3. - vec2(0.5) - 0.3);
+    float bg = 0.3 / (d * d + 0.001); // Add small value to avoid div by zero
 
-        float vignette = smoothstep(0.3 + .2, 0.1, distance(uv, vec2(0.5)));
-        dim *= vignette;
+    // Generate background color based on noise
+    float nn = n21(vec2(floor(rmsSpeed + 1.), 1.));
+    vec3 currentBgColor = vec3(n, fract(n*12.22), fract(n*123.22))*.5;
+    vec3 nextBgColor = vec3(nn, fract(nn*12.22), fract(nn*123.22))*.5;
+    vec3 bgColor = mix(currentBgColor, nextBgColor, fract(rmsSpeed));
 
-        vec3 coverColor = texture2D(cover, uv).rgb * dim;
+    // Optionally add animated background (commented out)
+    // col += bg * sin(bgColor + iTime + idx.x/3.*cos(fract(iTime*3.14) + idx.y/3.*sin(iTime*3.14)));
+    col /= bg * (bgColor*12.);
+    col += bg * bgColor;
 
-        vec3 col = vec3(0.);
-
-        float bg = .3/pow(abs(length(vUv/3. - vec2(0.5) - .3)), 2.3);
-
-        col = coverColor;
-
-        float nn = n21(vec2(floor(rmsSpeed + 1.), 1.));
-        vec3 currentBgColor = vec3(n, fract(n*12.22), fract(n*123.22))*.5;
-        vec3 nextBgColor = vec3(nn, fract(nn*12.22), fract(nn*123.22))*.5;
-        vec3 bgColor = mix(currentBgColor, nextBgColor, fract(rmsSpeed));
-
-        // col += bg * sin(bgColor + iTime + idx.x/3.*cos(fract(iTime*3.14) + idx.y/3.*sin(iTime*3.14)));
-        col /= bg * (bgColor*12.);
-        col += bg * bgColor;
-
-        gl_FragColor = vec4(col, 1.);
-    } else {
-        gl_FragColor = color;
-    }
+    // --- Output final color ---
+    // Use the original color if not black, otherwise use the generated background
+    float colorWeight = color.r + color.g + color.b;
+    gl_FragColor = vec4(col, 1.);
+    gl_FragColor *= float(!(colorWeight > 0.0));
+    gl_FragColor += color * float(colorWeight > 0.0);
 }
