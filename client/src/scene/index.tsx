@@ -156,10 +156,12 @@ class DefaultDashboard extends Component<Props, State> {
         <div
           tabIndex={0}
           onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-            if (e.metaKey) {
-              this.changeScene(false, Scene.Spotify);
-            } else {
-              this.changeScene(false);
+            if (kiosk.scenes[this.state.index] !== Scene.Spotify) {
+              if (e.metaKey) {
+                this.changeScene(false, Scene.Spotify);
+              } else {
+                this.changeScene(false);
+              }
             }
           }}
           style={{
