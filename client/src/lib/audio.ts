@@ -14,6 +14,8 @@ export class CustomAudioAnalyzer {
   allMid: number = 0;
   allHigh: number = 0;
   sampleRate: number = 60;
+  rmsDumping: number = 0.5; // Adjust this value to control the decay rate of the RMS velocity
+  prevRms: number = 0;
 
   levels: {
     low: number[];
@@ -52,7 +54,11 @@ export class CustomAudioAnalyzer {
   setRms(rms: number) {
     this.deltaTime = Date.now() - this.lastTimeStamp;
     this.lastTimeStamp = Date.now();
-    this.allRms += (rms * 10) / this.sampleRate;
+
+    rms = this.prevRms * (1 - this.rmsDumping) + rms * this.rmsDumping + 0.0;
+
+    this.prevRms = rms;
+    this.allRms += rms / 60; // Math.min(rms || 0, 0.02) / this.deltaTime;
 
     this.rms = rms;
     const now = Date.now();

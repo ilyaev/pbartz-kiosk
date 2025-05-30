@@ -5,6 +5,101 @@ import { SimplexNoise } from "three/examples/jsm/math/SimplexNoise.js";
 export class ShaderTexture {
   static loader = new THREE.TextureLoader();
 
+  static generatePositionsNorlmalMap(
+    texture: THREE.DataTexture
+  ): THREE.Texture {
+    const width = texture.image.width;
+    const height = texture.image.height;
+    const srcData = texture.image.data as Uint8Array | Uint8ClampedArray;
+    const normalData = new Uint8Array(width * height * 4);
+
+    function decodePosition(r: number, g: number, b: number) {
+      // Map [0,255] back to [-1,1]
+      return [(r / 255) * 2 - 1, (g / 255) * 2 - 1, (b / 255) * 2 - 1];
+    }
+
+    function encodeNormal(nx: number, ny: number, nz: number) {
+      // Map [-1,1] to [0,255]
+      return [
+        Math.floor(((nx + 1) / 2) * 255),
+        Math.floor(((ny + 1) / 2) * 255),
+        Math.floor(((nz + 1) / 2) * 255),
+      ];
+    }
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+
+        // Get center position
+        decodePosition(srcData[idx], srcData[idx + 1], srcData[idx + 2]);
+
+        // Get neighbors for finite difference (clamp at edges)
+        const x1 = Math.max(x - 1, 0),
+          x2 = Math.min(x + 1, width - 1);
+        const y1 = Math.max(y - 1, 0),
+          y2 = Math.min(y + 1, height - 1);
+
+        const idxL = (y * width + x1) * 4;
+        const idxR = (y * width + x2) * 4;
+        const idxT = (y1 * width + x) * 4;
+        const idxB = (y2 * width + x) * 4;
+
+        const [lx, ly, lz] = decodePosition(
+          srcData[idxL],
+          srcData[idxL + 1],
+          srcData[idxL + 2]
+        );
+        const [rx, ry, rz] = decodePosition(
+          srcData[idxR],
+          srcData[idxR + 1],
+          srcData[idxR + 2]
+        );
+        const [tx, ty, tz] = decodePosition(
+          srcData[idxT],
+          srcData[idxT + 1],
+          srcData[idxT + 2]
+        );
+        const [bx, by, bz] = decodePosition(
+          srcData[idxB],
+          srcData[idxB + 1],
+          srcData[idxB + 2]
+        );
+
+        // Compute tangent vectors
+        const dx = [rx - lx, ry - ly, rz - lz];
+        const dy = [bx - tx, by - ty, bz - tz];
+
+        // Cross product to get normal
+        const nx = dy[1] * dx[2] - dy[2] * dx[1];
+        const ny = dy[2] * dx[0] - dy[0] * dx[2];
+        const nz = dy[0] * dx[1] - dy[1] * dx[0];
+
+        // Normalize
+        const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+        const [enx, eny, enz] = encodeNormal(nx / len, ny / len, nz / len);
+
+        normalData[idx] = enx;
+        normalData[idx + 1] = eny;
+        normalData[idx + 2] = enz;
+        normalData[idx + 3] = 255;
+      }
+    }
+
+    const normalTexture = new THREE.DataTexture(
+      normalData,
+      width,
+      height,
+      THREE.RGBAFormat
+    );
+    normalTexture.needsUpdate = true;
+    normalTexture.minFilter = THREE.NearestFilter;
+    normalTexture.magFilter = THREE.NearestFilter;
+    normalTexture.wrapS = THREE.ClampToEdgeWrapping;
+    normalTexture.wrapT = THREE.ClampToEdgeWrapping;
+    return normalTexture;
+  }
+
   static blackness(texture: THREE.Texture) {
     if (!texture.image) return 0;
     let canvas: HTMLCanvasElement;
@@ -68,9 +163,8 @@ export class ShaderTexture {
         (texture) => {
           texture.minFilter = THREE.NearestFilter;
           texture.magFilter = THREE.NearestFilter;
-          texture.wrapS = THREE.ClampToEdgeWrapping;
-          texture.wrapT = THREE.ClampToEdgeWrapping;
-
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
           resolve(texture);
         },
         undefined,
@@ -109,6 +203,136 @@ export class ShaderTexture {
     randomTexture.wrapS = THREE.ClampToEdgeWrapping;
     randomTexture.wrapT = THREE.ClampToEdgeWrapping;
     return randomTexture;
+  }
+
+  static positionsTorusWireframe(
+    R: number = 0.7,
+    r: number = 0.3,
+    rows: number = 16,
+    cols: number = 32
+  ): THREE.DataTexture {
+    const TEXTURE_WIDTH = 256;
+    const TEXTURE_HEIGHT = 256;
+    const imageData = new ImageData(TEXTURE_WIDTH, TEXTURE_HEIGHT);
+    const data = imageData.data;
+
+    // Number of wireframe lines: rows parallels (around tube), cols meridians (around main circle)
+    const numParallels = rows;
+    const numMeridians = cols;
+    const totalLines = numParallels + numMeridians;
+    const totalPixels = TEXTURE_WIDTH * TEXTURE_HEIGHT;
+    const pixelsPerLine = Math.max(1, Math.floor(totalPixels / totalLines));
+
+    for (let i = 0; i < totalPixels; i++) {
+      // Which line (parallel or meridian) does this pixel belong to?
+      const lineIdx = Math.min(Math.floor(i / pixelsPerLine), totalLines - 1);
+
+      // Progress along the current line [0,1]
+      let t = 0.5;
+      if (pixelsPerLine > 1) {
+        // Find start and end pixel for this line
+        const start = lineIdx * pixelsPerLine;
+        const end =
+          lineIdx === totalLines - 1
+            ? totalPixels - 1
+            : (lineIdx + 1) * pixelsPerLine - 1;
+        const num = end - start + 1;
+        t = num > 1 ? (i - start) / (num - 1) : 0.5;
+      }
+
+      let x = 0,
+        y = 0,
+        z = 0;
+      if (lineIdx < numParallels) {
+        // Parallel (around tube): v is constant, u varies
+        const v = (lineIdx / numParallels) * 2 * Math.PI;
+        const u = t * 2 * Math.PI;
+        x = (R + r * Math.cos(v)) * Math.cos(u);
+        y = (R + r * Math.cos(v)) * Math.sin(u);
+        z = r * Math.sin(v);
+      } else {
+        // Meridian (around main circle): u is constant, v varies
+        const u = ((lineIdx - numParallels) / numMeridians) * 2 * Math.PI;
+        const v = t * 2 * Math.PI;
+        x = (R + r * Math.cos(v)) * Math.cos(u);
+        y = (R + r * Math.cos(v)) * Math.sin(u);
+        z = r * Math.sin(v);
+      }
+
+      // Map [-1,1] to [0,255]
+      const rCol = Math.floor(((x + 1) / 2) * 255);
+      const gCol = Math.floor(((y + 1) / 2) * 255);
+      const bCol = Math.floor(((z + 1) / 2) * 255);
+
+      const idx = i * 4;
+      data[idx] = rCol;
+      data[idx + 1] = gCol;
+      data[idx + 2] = bCol;
+      data[idx + 3] = 255;
+    }
+
+    const texture = new THREE.DataTexture(
+      data,
+      TEXTURE_WIDTH,
+      TEXTURE_HEIGHT,
+      THREE.RGBAFormat
+    );
+    texture.needsUpdate = true;
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
+  static positionsTorus(R: number = 0.7, r: number = 0.3): THREE.DataTexture {
+    const TEXTURE_WIDTH = 256;
+    const TEXTURE_HEIGHT = 256;
+    const imageData = new ImageData(TEXTURE_WIDTH, TEXTURE_HEIGHT);
+    const data = imageData.data;
+
+    // Torus parameters
+    // const R = 0.7; // Major radius (distance from center of tube to center of torus)
+    // const r = 0.3; // Minor radius (radius of the tube)
+
+    for (let i = 0; i < TEXTURE_WIDTH * TEXTURE_HEIGHT; i++) {
+      // For better distribution, use pixel coordinates directly
+      const px = i % TEXTURE_WIDTH;
+      const py = Math.floor(i / TEXTURE_WIDTH);
+
+      // u: around the main circle, v: around the tube
+      const u = (px / (TEXTURE_WIDTH - 1)) * 2 * Math.PI; // [0, 2PI]
+      const v = (py / (TEXTURE_HEIGHT - 1)) * 2 * Math.PI; // [0, 2PI]
+
+      // Torus parametric equations
+      const x = (R + r * Math.cos(v)) * Math.cos(u);
+      const y = (R + r * Math.cos(v)) * Math.sin(u);
+      const z = r * Math.sin(v);
+
+      // Map [-1,1] to [0,255] for RGB
+      const rCol = Math.floor(((x + 1) / 2) * 255);
+      const gCol = Math.floor(((y + 1) / 2) * 255);
+      const bCol = Math.floor(((z + 1) / 2) * 255);
+
+      const idx = i * 4;
+      data[idx] = rCol;
+      data[idx + 1] = gCol;
+      data[idx + 2] = bCol;
+      data[idx + 3] = 255;
+    }
+
+    const texture = new THREE.DataTexture(
+      data,
+      TEXTURE_WIDTH,
+      TEXTURE_HEIGHT,
+      THREE.RGBAFormat
+    );
+    texture.needsUpdate = true;
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
   }
 
   static positionsSphereLines(sphereCols: number, sphereRows: number) {

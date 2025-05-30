@@ -24,13 +24,10 @@ import TiltScene2, { CONFIG as TiltConfig2 } from "./visuals/tilt/index3";
 // import TiltScene3, { CONFIG as TiltConfig3 } from "./visuals/tilt/index4";
 // import TiltScene4, { CONFIG as TiltConfig4 } from "./visuals/tilt/index5";
 import DiscoWave, { CONFIG as DiscoWaveConfig } from "./visuals/disco_wave";
-import PointsCloud, {
-  CONFIG as PointsCloudConfig,
-} from "./visuals/points_cloud";
+import PointsShapes, {
+  CONFIG as PointsShapesConfig,
+} from "./visuals/points_shapes";
 // import PointsCube, { CONFIG as PointsCubeConfig } from "./visuals/points_cube";
-import PointsShapeMorph, {
-  CONFIG as PointsShapeMorphConfig,
-} from "./visuals/points_cube";
 import { mapRange } from "@/lib/utils";
 import ServerSensors from "@/lib/sensors";
 
@@ -42,11 +39,10 @@ let nextChange: number = Date.now() + SPOTIFY.albumCoverDuration;
 const DEBUG = false;
 
 const AvailableVisuals = DEBUG
-  ? [PointsCloud]
+  ? [PointsShapes]
   : //  [DebugConsole]
     [
-      PointsShapeMorph,
-      PointsCloud,
+      PointsShapes,
       DiscoWave,
       TiltScene2,
       Stars,
@@ -58,11 +54,10 @@ const AvailableVisuals = DEBUG
       TubesTape,
     ];
 const VisualsConfig = DEBUG
-  ? [PointsCloudConfig]
+  ? [PointsShapesConfig]
   : //  [DebugConfig]
     [
-      PointsShapeMorphConfig,
-      PointsCloudConfig,
+      PointsShapesConfig,
       DiscoWaveConfig,
       TiltConfig2,
       StarsConfig,
