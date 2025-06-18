@@ -83,7 +83,7 @@ class BubblesGrid extends Component<Props> {
   });
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.4;
+    this.aa.kickThreshold = 0.5;
     this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);
@@ -296,7 +296,7 @@ class BubblesGrid extends Component<Props> {
   }
 
   animate = () => {
-    this.aa.sampleRate = this.fps || 60;
+    this.aa.sampleRate = 120;
     this.aa.setRms(this.props.rms);
     this.aa.setFrequncyLevels(
       this.props.freqLevel.low,

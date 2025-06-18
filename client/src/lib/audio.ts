@@ -58,7 +58,7 @@ export class CustomAudioAnalyzer {
     rms = this.prevRms * (1 - this.rmsDumping) + rms * this.rmsDumping + 0.0;
 
     this.prevRms = rms;
-    this.allRms += rms / 60; // Math.min(rms || 0, 0.02) / this.deltaTime;
+    this.allRms += rms / 30; // Math.min(rms || 0, 0.02) / this.deltaTime;
 
     this.rms = rms;
     const now = Date.now();

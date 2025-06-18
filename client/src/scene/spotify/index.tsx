@@ -40,7 +40,7 @@ const AvailableVisuals = DEBUG
   ? [PointsShapes]
   : [
       PointsShapes,
-      DiscoWave,
+      // DiscoWave,
       SurfaceSpotlight,
       Stars,
       CityGrid,
@@ -54,7 +54,7 @@ const VisualsConfig = DEBUG
   ? [PointsShapesConfig]
   : [
       PointsShapesConfig,
-      DiscoWaveConfig,
+      // DiscoWaveConfig,
       SurfaceSpotlightConfig,
       StarsConfig,
       CityGridConfig,

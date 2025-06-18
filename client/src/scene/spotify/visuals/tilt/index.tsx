@@ -58,8 +58,10 @@ class BubblesGrid extends Component<Props> {
   state = { fps: 0 };
   private aa = new CustomAudioAnalyzer();
   loadedTexture2?: THREE.Texture;
+  totalRms: number = 0;
 
   componentDidMount() {
+    this.totalRms = 0;
     this.aa.kickThreshold = 0.45;
     this.aa.kickLag = 150;
     this.initThree();
@@ -172,9 +174,9 @@ class BubblesGrid extends Component<Props> {
     // this.controls.autoRotate = true;
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0x606060);
-    this.scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // const ambientLight = new THREE.AmbientLight(0x606060);
+    // this.scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 5.8);
     directionalLight.position.set(1, 1, 0.5).normalize();
     this.scene.add(directionalLight);
 
@@ -290,11 +292,11 @@ class BubblesGrid extends Component<Props> {
 
         // additonal dynamical offsets
         offsetY += globalWave;
-        if (kickDirection == 1.) {
-          offsetY += rippleWave * (1.2 + kick * 3.5);
-        } else {
-          offsetY += middleWave * kickDirection * (1. + kick*.3) ;
-        }
+        // if (kickDirection == 1.) {
+          offsetY += rippleWave * (1.2 + kick * 2.5);
+        // } else {
+          // offsetY += middleWave * kickDirection * (1. + kick*.3) ;
+        // }
         offsetY -= blobWave;
 
 
@@ -357,6 +359,7 @@ class BubblesGrid extends Component<Props> {
 
   animate = () => {
     this.aa.setRms(this.props.rms);
+    this.totalRms += .03 + this.props.rms * (.3 + (this.props.bars[0] || 1) * .8);
     this.animationId = requestAnimationFrame(this.animate);
 
     const now = performance.now();
@@ -389,21 +392,21 @@ class BubblesGrid extends Component<Props> {
 
     // this.camera?.rotateY(0.1);
     this.camera?.lookAt(
-      Math.cos(iTime) * 20,
-      Math.sin(iTime) * 10,
-      Math.sin(iTime) * 10
+      Math.cos(this.totalRms * .1) * 20,
+      Math.sin(this.totalRms * .2) * 10,
+      Math.sin(this.totalRms * .3) * 10
     );
     this.camera?.position.set(
-      -28 + Math.cos(iTime) * 5,
-      20 + Math.sin(iTime) * 5,
+      -28 + Math.cos(this.totalRms * .1) * 5,
+      20 + Math.sin(this.totalRms * .2) * 5,
       1
     );
 
     // this.instancedMesh!.rotation.y = (Math.PI / 8) * deltaTime;
     this.instancedMesh!.rotation.y =
-      (Math.sin(iTime * 0.3) * 0.5 + 0.5) * Math.PI * 2;
+      (Math.sin(this.totalRms * 0.1) * 0.5 + 0.5) * Math.PI * 2;
 
-    this.instancedMesh!.position.y = 3 + Math.abs(Math.sin(iTime * 0.5)) * 3;
+    this.instancedMesh!.position.y = 3 + Math.abs(Math.sin(this.totalRms * 0.2)) * 3;
     // this.instancedMesh!.rotation.x =
     //   ((Math.sin(iTime * 0.3) * 0.5 + 0.5) * Math.PI) / 10;
 

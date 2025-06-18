@@ -20,7 +20,6 @@ varying vec3 pixelColor;
 uniform float bars[7];
 uniform float rmsSpeed;
 
-#include <noise3d>
 
  mat2 rotate2d(float angle) {
     return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
@@ -47,7 +46,7 @@ uniform float rmsSpeed;
     float offsetY2 = - texColor2.b * 3.0;
     float offsetY = 0.;
 
-    float noiseMaxHeight = 6.5;
+    float noiseMaxHeight = 10.5;
 
     if (mod(kickCount, 2.0) == 0.0) {
         kickDirection = -1.;
@@ -73,20 +72,7 @@ uniform float rmsSpeed;
     offsetY -= specterWave * 10.;
 
 
-    vec3 nColor = colorNoise(
-        vec3(
-            (gridUV - 0.5
-                - sin(rmsSpeed) * 0.1
-                - gridUV.x * (cos(rmsSpeed) * 0.3)
-            ) * rotate2d(
-                rmsSpeed
-                // + (gridUV.x - 0.5 - sin(iTime) * 0.2)
-                // / (gridUV.y - 0.5 - cos(iTime) * 0.2) * (3.14*rms)
-            ),
-            rmsSpeed * 0.3
-        ),
-        false
-    );
+    vec3 nColor = vec3(1.);
 
     pixelColor = nColor;
     offsetY += nColor.r * noiseMaxHeight;

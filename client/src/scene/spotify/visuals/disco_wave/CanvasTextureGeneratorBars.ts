@@ -99,7 +99,7 @@ class CanvasTextureGenerator {
       const x = i * barWidth + barWidth * 0.1;
       const y = barBottom - height;
 
-      const red = Math.round(255 * (intensity * 4));
+      const red = Math.round(255 * (intensity * 8));
       this.textureCtx.save();
       this.textureCtx.translate(x + width / 2, y + height / 2);
       // this.textureCtx.rotate(Math.sin(iTime) * Math.PI * 2); // 45 degrees

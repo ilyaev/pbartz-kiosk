@@ -57,14 +57,14 @@ float n21(vec2 p) {
     float offsetY = point.g * range - range / 2.0;
 
     // Wavy edges
-    float waveMax = 5.;
-    vec3 n = colorNoise(vec3(point.r, point.g, point.b) + rmsSpeed*.2, false);
+    //float waveMax = 5.;
+    //vec3 n = colorNoise(vec3(point.r, point.g, point.b) + rmsSpeed*.2, false);
     // vec3 smoothVal = smoothstep(0., .3, n) * smoothstep(0., .3, 1. - n); // corners also moves
-    vec3 smoothVal = smoothstep(0., .3, point) * smoothstep(0., .3, 1. - point); // corners fixed
+    //vec3 smoothVal = smoothstep(0., .3, point) * smoothstep(0., .3, 1. - point); // corners fixed
 
-    offsetX += n.r * waveMax * smoothVal.b;
-    offsetY += n.g * waveMax * smoothVal.r;
-    offsetZ += n.b * waveMax * smoothVal.g;
+    //offsetX += n.r * waveMax * smoothVal.b;
+    //offsetY += n.g * waveMax * smoothVal.r;
+    //offsetZ += n.b * waveMax * smoothVal.g;
     // End
 
 

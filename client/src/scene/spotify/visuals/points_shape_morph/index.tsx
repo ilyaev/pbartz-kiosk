@@ -97,7 +97,7 @@ class PointsShapeMorph extends Component<Props> {
   iTime: number = 0;
 
   componentDidMount() {
-    this.aa.kickThreshold = 0.4;
+    this.aa.kickThreshold = 0.8;
     this.aa.kickLag = 150;
     this.initThree();
     window.addEventListener("resize", this.onWindowResize);
@@ -301,7 +301,7 @@ class PointsShapeMorph extends Component<Props> {
   calculateFps(now: number) {
     // FPS calculation
     this.frames++;
-    if (now - this.lastFpsUpdate > 500) {
+    if (now - this.lastFpsUpdate > 1000) {
       this.fps = (this.frames * 1000) / (now - this.lastFpsUpdate);
       this.lastFpsUpdate = now;
       this.frames = 0;
@@ -314,7 +314,7 @@ class PointsShapeMorph extends Component<Props> {
   }
 
   processAudioData = () => {
-    this.aa.sampleRate = this.fps || 60;
+    this.aa.sampleRate = 220;
     this.aa.setRms(this.props.rms);
     this.aa.setFrequncyLevels(
       this.props.freqLevel.low,
@@ -409,7 +409,7 @@ class PointsShapeMorph extends Component<Props> {
           ref={(ref) => (this.mount = ref)}
           style={{ width: "100vw", height: "100vh" }}
         />
-        {DEBUG && (
+        {/* {DEBUG && (
           <canvas
             ref={(ref) => (this.canvasRef = ref)}
             width={256}
@@ -424,7 +424,7 @@ class PointsShapeMorph extends Component<Props> {
               background: "#111",
             }}
           />
-        )}
+        )} */}
         {DEBUG && (
           <div
             id="fps-overlay"
