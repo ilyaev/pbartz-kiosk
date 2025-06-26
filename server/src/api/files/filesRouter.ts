@@ -33,6 +33,7 @@ filesRouter.get("/:bucket/:fileName", (req: Request, res: Response) => {
           (bucket !== "index" ? `${bucket}/` : ""),
         headers: {
           "cross-origin-resource-policy": "same-site",
+          // "Content-Security-Policy": "script-src 'self' 'unsafe-inline'",
         },
       });
     } else {

@@ -7,7 +7,7 @@ import { handleServiceResponse } from "@/common/utils/httpHandlers";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-const mime = require("mime-types");
+import mime from "mime-types";
 
 export const imageResizeRegistry = new OpenAPIRegistry();
 export const imageResizeRouter: Router = express.Router();

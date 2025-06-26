@@ -1,20 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "CommonJS",
-    "baseUrl": ".",
+    "target": "ESNext", // Target latest JavaScript features.
+    "module": "ESNext", // Use ES module system.
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "moduleResolution": "Node",
     "outDir": "dist",
     "importsNotUsedAsValues": "remove",
     "strict": true,
+    "declaration": true, // Emit type declaration files.
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true, // Support default imports in modules.
     "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true, // E
     "types": ["vitest/globals"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }

@@ -24,6 +24,7 @@ import DatabaseManager from "./utils/db";
 import { backlightRouter } from "./api/backlight/backlightRouter";
 import { captureRouter } from "./api/capture/captureRouter";
 import { imageResizeRouter } from "./api/imageResize/imageResizeRouter";
+import { sceneRouter } from "./api/scene/sceneRouter";
 
 var spotifyApi = new SpotifyWebApi({});
 
@@ -125,6 +126,7 @@ app.use("/history", asyncHandler(historyRouter));
 app.use("/backlight", asyncHandler(backlightRouter));
 app.use("/capture", asyncHandler(captureRouter));
 app.use("/resize_image", asyncHandler(imageResizeRouter));
+app.use("/scene", asyncHandler(sceneRouter));
 
 // Swagger UI
 app.use(openAPIRouter);
