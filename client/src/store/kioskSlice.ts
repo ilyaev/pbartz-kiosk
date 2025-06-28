@@ -8,6 +8,8 @@ export enum Scene {
   HistoryEvents = "HistoryEvents",
   Fallacy = "Fallacy",
   Bias = "Bias",
+  Idle = "Idle",
+  Game = "Game",
 }
 
 export interface KioskState {
@@ -23,6 +25,8 @@ const initialState: KioskState = {
     Scene.APOD,
     Scene.HistoryEvents,
     Scene.Bias,
+    // Scene.Idle,
+    Scene.Game,
     Scene.Spotify,
   ],
   lastMotion: 1,

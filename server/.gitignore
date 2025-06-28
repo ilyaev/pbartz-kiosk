@@ -32,6 +32,6 @@ files/screenshot/*
 files/apod/*
 files/music/*
 files/cover/*
-files/scene/*
+files/scene/*.html
 
-db.sqlite
+*.sqlite

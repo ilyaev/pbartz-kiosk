@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous 3D Snake (Three.js) - Hyperspace Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js';
+
+        // --- Constants ---
+        const SQUARE_SIZE = 1.0; // Size of a single snake segment/food item in world units
+        const GRID_DIMS = 30;    // Grid dimensions (e.g., 20x20 cells)
+        const MOVE_INTERVAL_MS = 120; // Time in milliseconds between discrete grid moves
+        const INITIAL_SNAKE_LENGTH = 3;
+
+        // Particle specific constants (for food consumption)
+        const PARTICLE_COUNT = 15;
+        const PARTICLE_SPEED = 10.5;
+        const PARTICLE_LIFETIME = 1000; // ms
+
+        // Starfield specific constants
+        const STAR_COUNT = 500; // Increased star count for denser field
+        const STAR_FIELD_DEPTH = 200; // Z-depth of the star field volume
+        const STAR_FIELD_WIDTH = STAR_FIELD_DEPTH; // X/Y width of the star field volume
+        const STAR_BASE_SIZE = 1.2; // Base size of individual star points
+        const STAR_BASE_SPEED = 80; // Base speed for stars (units per second)
+
+        // Food timing constants
+        const FOOD_RESPAWN_TIME = 5000; // ms: time before food respawns if not eaten
+        const FOOD_EXPLODE_TIME = 5000; // ms: time before food explodes if not eaten
+
+        // --- Three.js Global Variables ---
+        let scene, camera, renderer;
+        let ambientLight, directionalLight;
+        let floorPlane;
+        let gridHelper;
+        let starfield;
+        let lastFrameTime = 0; // For star movement deltaTime
+
+        // --- Game State Variables ---
+        let snakes = [];                // Array of Snake instances
+
+        // Food for Snake 1
+        let snake1FoodGridPosition;
+        let snake1FoodObject;
+        let snake1FoodSpawnTime = 0; // Track when food was spawned
+        let snake1FoodCurrentScale = 1; // Track current scale for growing effect
+
+        // Food for Snake 2
+        let snake2FoodGridPosition;
+        let snake2FoodObject;
+        let snake2FoodSpawnTime = 0; // Track when food was spawned
+        let snake2FoodCurrentScale = 1; // Track current scale for growing effect
+
+        let lastMoveTime = 0;           // Timestamp of the last discrete game logic move
+        let animationProgress = 0;      // For smooth visual interpolation (0 to 1)
+        let activeParticles = [];       // To store particle objects {mesh, velocity, startTime, lifetime}
+
+        // --- Materials ---
+        // Snake 1 (Green)
+        const snake1BodyMaterial = new THREE.MeshLambertMaterial({ color: 0x00cc00 }); // Green
+        const snake1HeadMaterial = new THREE.MeshLambertMaterial({ color: 0x008800 }); // Darker green
+        // Snake 2 (Blue)
+        const snake2BodyMaterial = new THREE.MeshLambertMaterial({ color: 0x0000cc }); // Blue
+        const snake2HeadMaterial = new THREE.MeshLambertMaterial({ color: 0x000088 }); // Darker blue
+
+        const foodMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });     // Red
+        // Updated: Translucent floor material with GridHelper
+        const floorMaterial = new THREE.MeshBasicMaterial({
+            color: 0x333333, // Darker gray for the translucent plane
+            transparent: true,
+            opacity: 0.19,    // Very translucent
+            side: THREE.DoubleSide // Important for seeing from both sides if camera goes below
+        });
+        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 1.0 }); // Gold/Yellow
+
+        // New: Starfield material
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xFFFFFF, // Base color will be modulated by vertex colors
+            size: STAR_BASE_SIZE,
+            map: createStarTexture(), // Use a texture for better star appearance (round dots)
+            transparent: true,
+            blending: THREE.AdditiveBlending, // Makes stars brighter when overlapping
+            depthWrite: false, // Avoids z-fighting issues
+            vertexColors: true, // Enable vertex colors for individual brightness
+            sizeAttenuation: true // Points further away appear smaller based on perspective
+        });
+
+        // --- Geometries ---
+        const snakeSegmentGeometry = new THREE.BoxGeometry(SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+        const foodGeometry = new THREE.SphereGeometry(SQUARE_SIZE * 0.45, 16, 16); // Slightly smaller sphere
+        const floorGeometry = new THREE.PlaneGeometry(GRID_DIMS * SQUARE_SIZE, GRID_DIMS * SQUARE_SIZE);
+        const particleGeometry = new THREE.SphereGeometry(SQUARE_SIZE * 0.15, 8, 8); // Small spheres for particles
+
+        // New: Geometry for stars
+        const starGeometry = new THREE.BufferGeometry();
+        const starVertices = [];
+        const starColors = [];
+        const starSpeeds = []; // Store individual speeds for stars
+
+        // --- Utility Functions ---
+
+        /**
+         * Creates a circular texture for stars.
+         * @returns {THREE.Texture}
+         */
+        function createStarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 16;
+            canvas.height = 16;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, canvas.width / 2
+            );
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.2, 'rgba(255,255,255,1)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        /**
+         * Converts grid coordinates to world coordinates.
+         * The grid is centered at (0,0) in world space.
+         * @param {THREE.Vector3} gridPos - The grid position (x, 0, z).
+         * @returns {THREE.Vector3} - The corresponding world position (x, y, z).
+         */
+        function gridToWorld(gridPos) {
+            const worldX = gridPos.x * SQUARE_SIZE - (GRID_DIMS / 2) * SQUARE_SIZE + (SQUARE_SIZE / 2);
+            const worldZ = gridPos.z * SQUARE_SIZE - (GRID_DIMS / 2) * SQUARE_SIZE + (SQUARE_SIZE / 2);
+            const worldY = SQUARE_SIZE / 2; // Y-position for the center of a box on the floor
+            return new THREE.Vector3(worldX, worldY, worldZ);
+        }
+
+        /**
+         * Creates a snake segment mesh.
+         * @param {THREE.Vector3} worldPos - Initial world position for the segment.
+         * @param {boolean} isHead - True if this is the head segment.
+         * @param {THREE.Material} material - The material to use for the segment.
+         * @returns {THREE.Mesh} - The created mesh.
+         */
+        function createSnakeSegment(worldPos, isHead, material) {
+            const mesh = new THREE.Mesh(snakeSegmentGeometry, material);
+            mesh.position.copy(worldPos);
+            scene.add(mesh);
+            return mesh;
+        }
+
+        /**
+         * Generates a random grid position within the play area.
+         * Ensures the position is not currently occupied by any snake or other food items.
+         * @returns {THREE.Vector3} - A random, unoccupied grid position.
+         */
+        function getRandomGridPosition() {
+            let x, z;
+            let newPos;
+            let occupied;
+
+            do {
+                x = Math.floor(Math.random() * GRID_DIMS);
+                z = Math.floor(Math.random() * GRID_DIMS);
+                newPos = new THREE.Vector3(x, 0, z); // Y is 0 for grid logic
+
+                occupied = false;
+                // Check against all snake bodies
+                for (const snake of snakes) {
+                    for (let i = 0; i < snake.bodyGridPositions.length; i++) {
+                        if (snake.bodyGridPositions[i].equals(newPos)) {
+                            occupied = true;
+                            break;
+                        }
+                    }
+                    if (occupied) break;
+                }
+
+                // Check against existing food items
+                if (!occupied && snake1FoodGridPosition && newPos.equals(snake1FoodGridPosition)) {
+                    occupied = true;
+                }
+                if (!occupied && snake2FoodGridPosition && newPos.equals(snake2FoodGridPosition)) {
+                    occupied = true;
+                }
+
+            } while (occupied);
+            return newPos;
+        }
+
+        /**
+         * Rotates a 2D direction vector (x, 0, z) by 90 degrees around the Y-axis.
+         * @param {THREE.Vector3} direction - The current direction vector.
+         * @param {boolean} clockwise - True for clockwise (right turn), false for counter-clockwise (left turn).
+         * @returns {THREE.Vector3} - The rotated direction vector.
+         */
+        function rotateDirection(direction, clockwise) {
+            const newDir = new THREE.Vector3();
+            if (clockwise) { // Rotate right (e.g., (1,0,0) -> (0,0,1))
+                newDir.x = -direction.z;
+                newDir.z = direction.x;
+            } else { // Rotate left (e.g., (1,0,0) -> (0,0,-1))
+                newDir.x = direction.z;
+                newDir.z = -direction.x;
+            }
+            return newDir;
+        }
+
+        // --- Particle Functions (for food consumption) ---
+
+        /**
+         * Creates a burst of particles at a given world position.
+         * @param {THREE.Vector3} worldPosition - The world coordinates to emit particles from.
+         */
+        function createFoodConsumptionParticles(worldPosition) {
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial.clone()); // Clone material for each particle to manage opacity individually
+                particle.position.copy(worldPosition);
+
+                // Random velocity vector, slightly favoring upward movement
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    Math.random() * 1.5,
+                    (Math.random() - 0.5) * 2
+                ).normalize().multiplyScalar(PARTICLE_SPEED * (0.5 + Math.random() * 0.5)); // Randomize speed slightly
+
+                scene.add(particle);
+                activeParticles.push({
+                    mesh: particle,
+                    velocity: velocity,
+                    startTime: performance.now(),
+                    lifetime: PARTICLE_LIFETIME * (0.8 + Math.random() * 0.4) // Randomize lifetime slightly
+                });
+            }
+        }
+
+        /**
+         * Updates the state of active particles (movement, fading, shrinking).
+         * @param {number} currentTime - Current timestamp from performance.now().
+         */
+        function updateParticles(currentTime) {
+            for (let i = activeParticles.length - 1; i >= 0; i--) {
+                const p = activeParticles[i];
+                const elapsed = currentTime - p.startTime;
+
+                if (elapsed > p.lifetime) {
+                    scene.remove(p.mesh);
+                    activeParticles.splice(i, 1);
+                } else {
+                    const deltaTime = (currentTime - (p.lastUpdateTime || p.startTime)) / 1000; // Time in seconds since last update
+                    p.mesh.position.add(p.velocity.clone().multiplyScalar(deltaTime));
+
+                    // Simple gravity-like effect (slight downward pull)
+                    p.velocity.y -= 0.005;
+
+                    // Fade out and shrink
+                    const progress = elapsed / p.lifetime;
+                    p.mesh.material.opacity = 1 - progress;
+                    const scale = 1 - progress;
+                    p.mesh.scale.set(scale, scale, scale);
+                    p.lastUpdateTime = currentTime;
+                }
+            }
+        }
+
+        // --- Snake Class ---
+        class Snake {
+            constructor(id, initialHeadX, initialHeadZ, initialDirection, headMaterial, bodyMaterial) {
+                this.id = id;
+                this.bodyGridPositions = [];
+                this.bodyGridPositionsPrev = [];
+                this.bodyObjects = [];
+                this.direction = initialDirection.clone();
+                this.headMaterial = headMaterial;
+                this.bodyMaterial = bodyMaterial;
+
+                // Initialize snake segments
+                for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+                    const segmentGridPos = new THREE.Vector3(
+                        initialHeadX - initialDirection.x * i,
+                        0,
+                        initialHeadZ - initialDirection.z * i
+                    );
+                    this.bodyGridPositions.push(segmentGridPos);
+                    this.bodyGridPositionsPrev.push(segmentGridPos.clone());
+                }
+                this.createVisuals(); // Create meshes and add to scene
+            }
+
+            /**
+             * Creates/recreates the 3D meshes for the snake's segments and adds them to the scene.
+             */
+            createVisuals() {
+                this.bodyObjects.forEach(obj => scene.remove(obj)); // Remove old visuals if any
+                this.bodyObjects = [];
+                for (let i = 0; i < this.bodyGridPositions.length; i++) {
+                    const isHead = (i === 0);
+                    const material = isHead ? this.headMaterial : this.bodyMaterial;
+                    const mesh = createSnakeSegment(gridToWorld(this.bodyGridPositions[i]), isHead, material);
+                    this.bodyObjects.push(mesh);
+                }
+            }
+
+            /**
+             * Removes all this snake's 3D meshes from the scene.
+             */
+            resetVisuals() {
+                this.bodyObjects.forEach(obj => scene.remove(obj));
+                this.bodyObjects = [];
+            }
+
+            /**
+             * Resets the snake's state (position, direction, length) to its initial configuration.
+             * Used for a full game reset.
+             * @param {number} initialHeadX - Initial X grid coordinate for the head.
+             * @param {number} initialHeadZ - Initial Z grid coordinate for the head.
+             * @param {THREE.Vector3} initialDirection - Initial movement direction.
+             */
+            resetState(initialHeadX, initialHeadZ, initialDirection) {
+                this.resetVisuals(); // Remove current meshes
+                this.bodyGridPositions = [];
+                this.bodyGridPositionsPrev = [];
+                this.direction = initialDirection.clone();
+
+                for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+                    const segmentGridPos = new THREE.Vector3(
+                        initialHeadX - initialDirection.x * i,
+                        0,
+                        initialHeadZ - initialDirection.z * i
+                    );
+                    this.bodyGridPositions.push(segmentGridPos);
+                    this.bodyGridPositionsPrev.push(segmentGridPos.clone()); // Initialize prev positions
+                }
+                this.createVisuals(); // Re-create meshes for new state
+            }
+
+            /**
+             * Checks for collisions with walls, its own body, or other snakes' bodies.
+             * @param {THREE.Vector3} newHeadGridPos - The potential next grid position of the head.
+             * @param {THREE.Vector3[]} allOtherSnakeBodies - Array of grid positions of all segments from other snakes.
+             * @param {THREE.Vector3} myFoodPos - This snake's target food position.
+             * @returns {boolean} - True if a collision is detected, false otherwise.
+             */
+            checkCollision(newHeadGridPos, allOtherSnakeBodies, myFoodPos) {
+                // Wall Collision
+                if (newHeadGridPos.x < 0 || newHeadGridPos.x >= GRID_DIMS ||
+                    newHeadGridPos.z < 0 || newHeadGridPos.z >= GRID_DIMS) {
+                    return true;
+                }
+
+                // Self Collision
+                // Check against all but the last segment if not eating, as the tail will move.
+                const willEatFood = newHeadGridPos.equals(myFoodPos);
+                for (let i = 0; i < this.bodyGridPositions.length; i++) {
+                    if (newHeadGridPos.equals(this.bodyGridPositions[i])) {
+                        if (i === this.bodyGridPositions.length - 1 && !willEatFood) {
+                            continue; // Tail segment will move out of the way
+                        }
+                        return true; // Collision with own body
+                    }
+                }
+
+                // Other Snake Body Collision
+                for (const otherBodySegment of allOtherSnakeBodies) {
+                    if (newHeadGridPos.equals(otherBodySegment)) {
+                        return true; // Collision with another snake's body
+                    }
+                }
+                return false;
+            }
+
+            /**
+             * Determines the snake's next movement direction using AI logic.
+             * Prioritizes moving towards its own food, avoiding collisions.
+             * @param {THREE.Vector3} myFoodPos - This snake's current target food position.
+             * @param {THREE.Vector3[]} otherSnakeBodies - An array of grid positions of all segments from the *other* snake.
+             */
+            updateDirection(myFoodPos, otherSnakeBodies) {
+                const headPos = this.bodyGridPositions[0];
+
+                // Possible directions relative to current snakeDirection
+                const potentialDirections = [
+                    this.direction.clone(),                      // Forward
+                    rotateDirection(this.direction, false),      // Left
+                    rotateDirection(this.direction, true)        // Right
+                ];
+
+                let bestMove = null;
+                let minDistanceToFood = Infinity;
+                let hasSafePath = false; // Flag to check if any safe path exists
+
+                // 1. Prioritize moves that get closer to food AND are safe
+                for (const dir of potentialDirections) {
+                    const potentialNewHeadPos = headPos.clone().add(dir);
+                    if (!this.checkCollision(potentialNewHeadPos, otherSnakeBodies, myFoodPos)) {
+                        hasSafePath = true; // At least one safe path exists
+                        const distance = potentialNewHeadPos.distanceTo(myFoodPos);
+
+                        // If this path gets closer, or is equally close but we haven't found a path yet
+                        if (distance < minDistanceToFood) {
+                            minDistanceToFood = distance;
+                            bestMove = dir;
+                        }
+                    }
+                }
+
+                // 2. If no path gets closer to food, but a safe path exists, choose a safe one.
+                // This handles cases where food is behind or snake is already optimally placed,
+                // or if the closest path is blocked but other safe paths exist.
+                if (bestMove === null && hasSafePath) {
+                    // Try to find any safe path. Prioritize forward, then left, then right.
+                    for (const dir of potentialDirections) {
+                        const potentialNewHeadPos = headPos.clone().add(dir);
+                        if (!this.checkCollision(potentialNewHeadPos, otherSnakeBodies, myFoodPos)) {
+                            bestMove = dir;
+                            break; // Take the first safe path found
+                        }
+                    }
+                }
+
+                // 3. Fallback: If still no valid/safe move (e.g., completely trapped),
+                // stick to current direction. This will likely cause a collision
+                // in the main game loop, leading to a reset.
+                if (bestMove !== null) {
+                    this.direction.copy(bestMove);
+                }
+            }
+
+            /**
+             * Updates the snake's grid positions based on its current direction.
+             * @param {THREE.Vector3} newHeadGridPos - The calculated new grid position for the head.
+             */
+            move(newHeadGridPos) {
+                // Shift all body segments
+                for (let i = this.bodyGridPositions.length - 1; i > 0; i--) {
+                    this.bodyGridPositions[i].copy(this.bodyGridPositions[i-1]);
+                    // Update material of old head (now second segment)
+                    if (i === 1) { // The segment that was the head (index 0) becomes body (index 1)
+                        this.bodyObjects[i].material = this.bodyMaterial;
+                    }
+                }
+                this.bodyGridPositions[0].copy(newHeadGridPos); // Move head
+                this.bodyObjects[0].material = this.headMaterial; // Ensure head material
+            }
+
+            /**
+             * Grows the snake by one segment at its tail.
+             */
+            grow() {
+                // Add a new segment at the last tail position (before the head moved)
+                const newSegmentGridPos = this.bodyGridPositionsPrev[this.bodyGridPositionsPrev.length - 1].clone();
+                this.bodyGridPositions.push(newSegmentGridPos);
+                this.bodyGridPositionsPrev.push(newSegmentGridPos.clone()); // Keep previous in sync for next interpolation
+                const newSegmentMesh = createSnakeSegment(gridToWorld(newSegmentGridPos), false, this.bodyMaterial);
+                this.bodyObjects.push(newSegmentMesh);
+            }
+        } // End Snake class
+
+        // --- Food Management Functions ---
+
+        /**
+         * Creates a new food item for a specific snake at a random, unoccupied position.
+         * @param {string} forSnakeId - The ID of the snake this food belongs to ('snake1' or 'snake2').
+         */
+        function createSpecificFood(forSnakeId) {
+            let foodMesh;
+            let foodPos;
+
+            // Remove old food for this snake if it exists
+            if (forSnakeId === 'snake1' && snake1FoodObject) {
+                scene.remove(snake1FoodObject);
+                snake1FoodObject = null;
+                snake1FoodGridPosition = null;
+            } else if (forSnakeId === 'snake2' && snake2FoodObject) {
+                scene.remove(snake2FoodObject);
+                snake2FoodObject = null;
+                snake2FoodGridPosition = null;
+            }
+
+            foodPos = getRandomGridPosition();
+            foodMesh = new THREE.Mesh(foodGeometry, foodMaterial);
+            foodMesh.position.copy(gridToWorld(foodPos));
+            foodMesh.scale.set(1, 1, 1); // Reset scale
+            scene.add(foodMesh);
+
+            if (forSnakeId === 'snake1') {
+                snake1FoodGridPosition = foodPos;
+                snake1FoodObject = foodMesh;
+                snake1FoodSpawnTime = performance.now();
+                snake1FoodCurrentScale = 1;
+            } else {
+                snake2FoodGridPosition = foodPos;
+                snake2FoodObject = foodMesh;
+                snake2FoodSpawnTime = performance.now();
+                snake2FoodCurrentScale = 1;
+            }
+        }
+
+        // --- Game Logic Functions ---
+
+        /**
+         * Resets the entire game state to its initial configuration (two snakes, two food items).
+         */
+        function resetGame() {
+            // Clear existing food from scene
+            if (snake1FoodObject) scene.remove(snake1FoodObject);
+            if (snake2FoodObject) scene.remove(snake2FoodObject);
+            snake1FoodObject = null;
+            snake2FoodObject = null;
+            snake1FoodGridPosition = null;
+            snake2FoodGridPosition = null;
+
+            // Reset existing particles
+            activeParticles.forEach(p => scene.remove(p.mesh));
+            activeParticles = [];
+
+            // Reset or re-create snakes
+            if (snakes.length === 0) {
+                // Initial creation
+                snakes.push(new Snake("snake1", Math.floor(GRID_DIMS / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(1, 0, 0), snake1HeadMaterial, snake1BodyMaterial));
+                snakes.push(new Snake("snake2", Math.floor(GRID_DIMS * 3 / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(-1, 0, 0), snake2HeadMaterial, snake2BodyMaterial));
+            } else {
+                // Reset existing snakes
+                snakes[0].resetState(Math.floor(GRID_DIMS / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(1, 0, 0));
+                snakes[1].resetState(Math.floor(GRID_DIMS * 3 / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(-1, 0, 0));
+            }
+
+            // Create food for each snake AFTER snakes are initialized
+            createSpecificFood('snake1');
+            createSpecificFood('snake2');
+
+            lastMoveTime = performance.now();
+            animationProgress = 0; // Reset progress on game restart
+            // console.log("Game Reset!");
+        }
+
+        /**
+         * Main animation loop. Updates game state and renders the scene.
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const elapsedTimeSinceLastMove = currentTime - lastMoveTime;
+
+            // --- Food Grow and Explode Logic ---
+            // Snake 1 food
+            if (snake1FoodObject) {
+                const foodAge = currentTime - snake1FoodSpawnTime;
+                // Grow food size over time (up to 2x original size in FOOD_EXPLODE_TIME)
+                let scale = 1 + Math.min(foodAge / FOOD_EXPLODE_TIME, 1); // 1 to 2
+                snake1FoodCurrentScale = scale;
+                snake1FoodObject.scale.set(scale, scale, scale);
+                // If more than FOOD_EXPLODE_TIME, explode and respawn
+                if (foodAge > FOOD_EXPLODE_TIME) {
+                    createFoodConsumptionParticles(snake1FoodObject.position);
+                    scene.remove(snake1FoodObject);
+                    snake1FoodObject = null;
+                    snake1FoodGridPosition = null;
+                    createSpecificFood('snake1');
+                }
+            }
+            // Snake 2 food
+            if (snake2FoodObject) {
+                const foodAge = currentTime - snake2FoodSpawnTime;
+                let scale = 1 + Math.min(foodAge / FOOD_EXPLODE_TIME, 1);
+                snake2FoodCurrentScale = scale;
+                snake2FoodObject.scale.set(scale, scale, scale);
+                if (foodAge > FOOD_EXPLODE_TIME) {
+                    createFoodConsumptionParticles(snake2FoodObject.position);
+                    scene.remove(snake2FoodObject);
+                    snake2FoodObject = null;
+                    snake2FoodGridPosition = null;
+                    createSpecificFood('snake2');
+                }
+            }
+            // --- Food Respawn if not eaten for FOOD_RESPAWN_TIME ---
+            if (snake1FoodObject && (currentTime - snake1FoodSpawnTime > FOOD_RESPAWN_TIME)) {
+                // Only respawn if not already exploded
+                if (currentTime - snake1FoodSpawnTime <= FOOD_EXPLODE_TIME) {
+                    createSpecificFood('snake1');
+                }
+            }
+            if (snake2FoodObject && (currentTime - snake2FoodSpawnTime > FOOD_RESPAWN_TIME)) {
+                if (currentTime - snake2FoodSpawnTime <= FOOD_EXPLODE_TIME) {
+                    createSpecificFood('snake2');
+                }
+            }
+
+            // Calculate deltaTime for star movement and particles
+            const currentFrameTime = performance.now();
+            const deltaTime = (currentFrameTime - lastFrameTime) / 1000; // Delta time in seconds for stars/particles
+            lastFrameTime = currentFrameTime; // Update last frame time for next calculation
+
+            // Update particles regardless of snake movement interval
+            updateParticles(currentTime);
+
+            // Starfield movement
+            if (starfield) {
+                const positions = starfield.geometry.attributes.position.array;
+                const speeds = starfield.geometry.attributes.speed.array;
+
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    let index = i * 3;
+                    // Move star along negative Z axis (towards camera). Speed varies per star.
+                    positions[index + 2] -= STAR_BASE_SPEED * speeds[i] * deltaTime;
+
+                    // If star has passed the camera (negative Z limit), reset it to the far end of the field
+                    // Using camera.position.z as a reference for wrapping
+                    const cameraZThreshold = camera.position.z - STAR_FIELD_DEPTH / 2; // Adjust threshold if needed
+                    if (positions[index + 2] < cameraZThreshold) {
+                        positions[index + 2] = cameraZThreshold + STAR_FIELD_DEPTH; // Reset Z to the very back of the current viewable field
+                        // Randomize X and Y slightly on reset to avoid perfect lines and add variety
+                        positions[index] = THREE.MathUtils.randFloatSpread(STAR_FIELD_WIDTH);
+                        positions[index + 1] = THREE.MathUtils.randFloatSpread(STAR_FIELD_WIDTH);
+                    }
+                }
+                starfield.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Discrete game logic update (every MOVE_INTERVAL_MS)
+            if (elapsedTimeSinceLastMove >= MOVE_INTERVAL_MS) {
+                const potentialNewHeadPositions = new Map(); // Store potential next head positions for collision checks
+
+                // Phase 1: AI decision and determine potential new head positions for each snake
+                snakes.forEach(snake => {
+                    const otherSnakeBodies = snakes.filter(s => s.id !== snake.id).flatMap(s => s.bodyGridPositions);
+                    const myFoodPos = (snake.id === 'snake1') ? snake1FoodGridPosition : snake2FoodGridPosition;
+                    snake.updateDirection(myFoodPos, otherSnakeBodies); // Pass specific food
+                    const newHeadPos = snake.bodyGridPositions[0].clone().add(snake.direction);
+                    potentialNewHeadPositions.set(snake.id, newHeadPos);
+                });
+
+                // Phase 2: Check for head-to-head collisions before moving any snake
+                let collisionOccurred = false;
+                const head1Pos = potentialNewHeadPositions.get(snakes[0].id);
+                const head2Pos = potentialNewHeadPositions.get(snakes[1].id);
+
+                if (head1Pos.equals(head2Pos)) {
+                    // console.log("Head-to-Head Collision! Resetting game.");
+                    collisionOccurred = true;
+                }
+
+                if (!collisionOccurred) {
+                    // Phase 3: Move snakes and check for individual collisions/food
+                    for (const snake of snakes) {
+                        snake.bodyGridPositionsPrev = snake.bodyGridPositions.map(v => v.clone()); // Store for interpolation
+
+                        const newHeadGridPos = potentialNewHeadPositions.get(snake.id);
+                        const otherSnakeBodies = snakes.filter(s => s.id !== snake.id).flatMap(s => s.bodyGridPositions);
+                        const myFoodPos = (snake.id === 'snake1') ? snake1FoodGridPosition : snake2FoodGridPosition;
+
+
+                        if (snake.checkCollision(newHeadGridPos, otherSnakeBodies, myFoodPos)) {
+                            // console.log(`Collision detected for ${snake.id}! Resetting game.`);
+                            collisionOccurred = true;
+                            break; // Break inner loop if a collision is found
+                        }
+
+                        // Food Consumption Check
+                        if (newHeadGridPos.equals(myFoodPos)) {
+                            // console.log(`${snake.id} ate its food! Growing snake.`);
+                            snake.grow();
+                            createFoodConsumptionParticles(gridToWorld(myFoodPos)); // Particles at food spot
+                            createSpecificFood(snake.id); // Replace the *specific* food item for this snake
+                        }
+
+                        snake.move(newHeadGridPos); // Perform the actual move
+                    }
+                }
+
+                if (collisionOccurred) {
+                    resetGame();
+                    renderer.render(scene, camera); // Render immediately after reset
+                    return; // Stop current frame processing for this loop iteration
+                }
+
+                lastMoveTime = currentTime; // Update timestamp for next discrete move
+                animationProgress = 0;      // CRITICAL FIX: Reset animation progress to 0 for next interpolation cycle.
+            }
+
+            // Update visual interpolation progress
+            animationProgress = Math.min(1, Math.max(0, (currentTime - lastMoveTime) / MOVE_INTERVAL_MS));
+
+            // --- Update Visuals (Smooth Interpolation) ---
+            for (const snake of snakes) {
+                for (let i = 0; i < snake.bodyObjects.length; i++) {
+                    const startPosWorld = gridToWorld(snake.bodyGridPositionsPrev[i]);
+                    const endPosWorld = gridToWorld(snake.bodyGridPositions[i]);
+                    snake.bodyObjects[i].position.lerpVectors(startPosWorld, endPosWorld, animationProgress);
+                }
+            }
+
+            /* --- Camera Fly-Around and Sporadic Zoom --- */
+            const CAMERA_ORBIT_RADIUS = GRID_DIMS * SQUARE_SIZE * 1.2;
+            const CAMERA_ORBIT_HEIGHT = GRID_DIMS * SQUARE_SIZE * 0.9;
+            const CAMERA_ORBIT_SPEED = 0.10; // radians per second
+
+            // Zoom parameters
+            let cameraZoomTarget = camera.position.z;
+            let cameraZoomStart = camera.position.z;
+            let cameraZoomStartTime = 0;
+            let cameraZoomDuration = 0;
+            let cameraZooming = false;
+            let lastZoomTime = 0;
+            const CAMERA_ZOOM_MIN = CAMERA_ORBIT_RADIUS * 0.4;
+            const CAMERA_ZOOM_MAX = CAMERA_ORBIT_RADIUS * 1.1;
+            const CAMERA_ZOOM_INTERVAL_MIN = 2500;
+            const CAMERA_ZOOM_INTERVAL_MAX = 3900;
+            const CAMERA_ZOOM_ANIMATION_MIN = 1200;
+            const CAMERA_ZOOM_ANIMATION_MAX = 1400;
+
+            // Camera orbit angle state
+            if (typeof window._snakeCameraAngle === "undefined") window._snakeCameraAngle = 0;
+            window._snakeCameraAngle += CAMERA_ORBIT_SPEED * deltaTime;
+            const angle = window._snakeCameraAngle;
+
+            // Calculate orbit position
+            const camX = Math.cos(angle) * CAMERA_ORBIT_RADIUS;
+            const camZ = Math.sin(angle) * CAMERA_ORBIT_RADIUS;
+            const camY = CAMERA_ORBIT_HEIGHT + Math.sin(angle * 0.7) * (GRID_DIMS * 0.18);
+
+            // Handle sporadic zoom
+            const now = performance.now();
+            if (!cameraZooming && now - lastZoomTime > THREE.MathUtils.randInt(CAMERA_ZOOM_INTERVAL_MIN, CAMERA_ZOOM_INTERVAL_MAX)) {
+                cameraZoomStart = camera.position.z;
+                cameraZoomTarget = THREE.MathUtils.randFloat(CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
+                cameraZoomStartTime = now;
+                cameraZoomDuration = THREE.MathUtils.randInt(CAMERA_ZOOM_ANIMATION_MIN, CAMERA_ZOOM_ANIMATION_MAX);
+                cameraZooming = true;
+                lastZoomTime = now;
+            }
+            if (cameraZooming) {
+                const t = Math.min(1, (now - cameraZoomStartTime) / cameraZoomDuration);
+                const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // ease in-out
+                camera.position.z = THREE.MathUtils.lerp(cameraZoomStart, cameraZoomTarget, ease);
+                if (t >= 1) cameraZooming = false;
+            } else {
+                camera.position.z = camZ;
+            }
+
+            // Set camera position and look at center
+            camera.position.x = camX;
+            camera.position.y = camY;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        /**
+         * Handles window resizing events.
+         */
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /**
+         * Initializes the Three.js scene, camera, renderer, and lights.
+         */
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050510); // Very dark blue/black for space
+
+            // Camera (Top-down, slightly angled perspective)
+            camera = new THREE.PerspectiveCamera(
+                40, // FOV
+                window.innerWidth / window.innerHeight,
+                0.1,  // Near clipping plane
+                STAR_FIELD_DEPTH + 100 // Far clipping plane: make sure it covers the whole starfield depth
+            );
+            // Position camera slightly above and angled towards the center.
+            const cameraHeight = GRID_DIMS * SQUARE_SIZE * 1.0; // Higher
+            const cameraDepth = GRID_DIMS * SQUARE_SIZE * 1.0; // Further back
+            camera.position.set(0, cameraHeight, cameraDepth);
+            camera.lookAt(0, -2, 0); // Look at the center of the play area
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white light
+            scene.add(ambientLight);
+
+            directionalLight = new THREE.DirectionalLight(0xffffff, 1.2); // Brighter directional light
+            directionalLight.position.set(20, 30, 20); // Position light further away
+            directionalLight.target.position.set(0, 0, 0); // Point towards center
+            scene.add(directionalLight);
+            scene.add(directionalLight.target);
+
+            // Floor Plane (Translucent)
+            floorPlane = new THREE.Mesh(floorGeometry, floorMaterial);
+            floorPlane.rotation.x = -Math.PI / 2; // Rotate to lay flat (on XZ plane)
+            floorPlane.position.y = 0; // The floor is at y=0, segments at y=SQUARE_SIZE/2
+            scene.add(floorPlane);
+
+            // Grid Helper (visible grid lines)
+            gridHelper = new THREE.GridHelper(
+                GRID_DIMS * SQUARE_SIZE, // Size of the grid
+                GRID_DIMS,               // Number of divisions
+                0x444444 ,                // Center line color (green)
+                0x444444                 // Grid color (dark gray)
+            );
+            gridHelper.material.opacity = 0.5; // Make grid lines translucent
+            gridHelper.material.transparent = true;
+            gridHelper.position.y = 0.01; // Slightly above the plane to avoid z-fighting
+            scene.add(gridHelper);
+
+            // Create Starfield
+            createStarfield();
+
+            // Event listener for window resizing
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        /**
+         * Creates the starfield background with varying size, brightness, and speed.
+         */
+        function createStarfield() {
+            // Fill arrays with star data
+            for (let i = 0; i < STAR_COUNT; i++) {
+                // Generate positions within a rectangular volume for "flying through"
+                // X & Y spread across the width, Z spread across the depth from camera's view
+                const x = THREE.MathUtils.randFloatSpread(STAR_FIELD_WIDTH);
+                const y = THREE.MathUtils.randFloatSpread(STAR_FIELD_WIDTH);
+                const z = THREE.MathUtils.randFloat(camera.position.z, camera.position.z + STAR_FIELD_DEPTH); // Start stars further than camera
+
+                starVertices.push(x, y, z);
+
+                // Vary brightness: from 0.3 to 1.0
+                const brightness = Math.random() * 0.7 + 0.3;
+                starColors.push(brightness, brightness, brightness); // Grayscale stars
+
+                // Vary speed: from 0.2 to 1.0 (relative to STAR_BASE_SPEED)
+                starSpeeds.push(Math.random() * 0.8 + 0.2);
+            }
+
+            // Set attributes for the BufferGeometry
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(starVertices), 3));
+            starGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(starColors), 3));
+            starGeometry.setAttribute('speed', new THREE.BufferAttribute(new Float32Array(starSpeeds), 1)); // Custom attribute for speed
+
+            // Create the Points object
+            starfield = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starfield);
+        }
+
+        // --- Game Initialization ---
+        initThreeJS(); // Setup Three.js scene
+        resetGame();   // Initialize game state (snakes, food)
+        animate();     // Start the animation loop
+    </script>
+</body>
+</html>

@@ -11,6 +11,8 @@ import HistoryEventsDashboard from "@/scene/history_events";
 import { HISTORY_EVENTS, SCENE, SERVER_URL, SPOTIFY } from "@/lib/const";
 import FallacyScene from "@/scene/fallacy";
 import BiasScene from "@/scene/bias";
+import IdleScene from "@/scene/idle";
+import GameScene from "@/scene/game";
 
 const FADE_SPEED = 1000;
 
@@ -34,6 +36,8 @@ const SCENE_MAP: { [key in Scene]: React.ComponentType } = {
   [Scene.HistoryEvents]: HistoryEventsDashboard,
   [Scene.Fallacy]: FallacyScene,
   [Scene.Bias]: BiasScene,
+  [Scene.Idle]: IdleScene,
+  [Scene.Game]: GameScene,
 };
 
 class DefaultDashboard extends Component<Props, State> {
@@ -61,7 +65,10 @@ class DefaultDashboard extends Component<Props, State> {
         myState.is_playing && myState.device.name === SPOTIFY.device;
     }
 
-    if (isMusicPlaying) {
+    if (
+      isMusicPlaying &&
+      this.props.kiosk.scenes.indexOf(Scene.Spotify) !== -1
+    ) {
       return [
         this.props.kiosk.scenes.indexOf(Scene.Spotify),
         SCENE.refreshInterval,
@@ -89,6 +96,10 @@ class DefaultDashboard extends Component<Props, State> {
 
     if (this.props.kiosk.scenes[nextIndex] === Scene.HistoryEvents) {
       refreshInterval = HISTORY_EVENTS.sceneDuration;
+    }
+
+    if (this.props.kiosk.scenes[nextIndex] === Scene.Game) {
+      refreshInterval = SCENE.refreshInterval * 2; // Games might need more time
     }
 
     return [nextIndex, refreshInterval];
