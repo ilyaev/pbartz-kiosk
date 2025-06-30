@@ -25,8 +25,8 @@
     </style>
 </head>
 <body>
-    <div id="blue-count" style="position: absolute; left: 1vw; top: 50%; transform: translateY(-50%); font-size: 8vw; color: #003b8a; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px #000, 0 0 2px #fff; z-index: 200; pointer-events: none; user-select: none;"></div>
-    <div id="white-count" style="position: absolute; right: 1vw; top: 50%; transform: translateY(-50%); font-size: 8vw; color: #fff; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px #000, 0 0 2px #003b8a; z-index: 200; pointer-events: none; user-select: none;"></div>
+    <div id="blue-count" style="position: absolute; left: 1vw; top: 50%; transform: translateY(-50%); font-size: 8vw; color: #fff; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px #000, 0 0 2px #003b8a; z-index: 200; pointer-events: none; user-select: none;"></div>
+    <div id="white-count" style="position: absolute; right: 1vw; top: 50%; transform: translateY(-50%); font-size: 8vw; color: #003b8a; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px #000, 0 0 2px #fff; z-index: 200; pointer-events: none; user-select: none;"></div>
     <!--
       Using an import map is a modern, clean way to include ES6 modules
       like Three.js directly from a CDN without a build step.
@@ -45,9 +45,11 @@
         // ——————————————————————————————————————————————————
         // 1. Constants and Configuration
         // ——————————————————————————————————————————————————
-        const GRID_SIZE = 20;
+        const GRID_COLS = 26;
+        const GRID_ROWS = 20;
         const CELL_SIZE = 1.0;
-        const WORLD_SIZE = GRID_SIZE * CELL_SIZE;
+        const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
+        const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
         const BALL_RADIUS = CELL_SIZE / 2.0;
         const BASE_SPEED = 25.0;
 
@@ -71,13 +73,14 @@
         // ——————————————————————————————————————————————————
         // 3. Data Models with RANDOMIZED Initialization
         // ——————————————————————————————————————————————————
-        const gridState = Array(GRID_SIZE).fill(0).map(() => new Array(GRID_SIZE).fill(STATE.WHITE));
-        const halfWorldSize = WORLD_SIZE / 2;
+        const gridState = Array(GRID_COLS).fill(0).map(() => new Array(GRID_ROWS).fill(STATE.WHITE));
+        const halfWorldWidth = WORLD_WIDTH / 2;
+        const halfWorldHeight = WORLD_HEIGHT / 2;
 
         const blueBall = {
             position: new THREE.Vector3(
-                Math.random() * halfWorldSize, // Start on the right (white) side
-                (Math.random() - 0.5) * WORLD_SIZE,
+                Math.random() * halfWorldWidth, // Start on the right (white) side
+                (Math.random() - 0.5) * WORLD_HEIGHT,
                 0
             ),
             velocity: new THREE.Vector3(-1, (Math.random() - 0.5), 0).normalize().multiplyScalar(BASE_SPEED),
@@ -87,8 +90,8 @@
 
         const whiteBall = {
             position: new THREE.Vector3(
-                Math.random() * -halfWorldSize, // Start on the left (blue) side
-                (Math.random() - 0.5) * WORLD_SIZE,
+                Math.random() * -halfWorldWidth, // Start on the left (blue) side
+                (Math.random() - 0.5) * WORLD_HEIGHT,
                 0
             ),
             velocity: new THREE.Vector3(1, (Math.random() - 0.5), 0).normalize().multiplyScalar(BASE_SPEED),
@@ -144,7 +147,7 @@
             scene = new THREE.Scene();
             clock = new THREE.Clock();
 
-            camera = new THREE.OrthographicCamera(-halfWorldSize, halfWorldSize, halfWorldSize, -halfWorldSize, 1, 100);
+            camera = new THREE.OrthographicCamera(-halfWorldWidth, halfWorldWidth, halfWorldWidth, -halfWorldWidth, 1, 100);
             camera.position.set(0, 0, 10);
             camera.lookAt(0, 0, 0);
 
@@ -178,11 +181,11 @@
                 const ndc = new THREE.Vector3(mouse.x, mouse.y, 0);
                 ndc.unproject(camera);
                 // Find grid cell
-                const gridX = Math.floor(ndc.x + halfWorldSize);
-                const gridY = Math.floor(ndc.y + halfWorldSize);
+                const gridX = Math.floor(ndc.x + halfWorldWidth);
+                const gridY = Math.floor(ndc.y + halfWorldHeight);
                 if (
-                    gridX >= 0 && gridX < GRID_SIZE &&
-                    gridY >= 0 && gridY < GRID_SIZE &&
+                    gridX >= 0 && gridX < GRID_COLS &&
+                    gridY >= 0 && gridY < GRID_ROWS &&
                     (!lastInvertedCell || lastInvertedCell[0] !== gridX || lastInvertedCell[1] !== gridY)
                 ) {
                     // Invert color
@@ -218,21 +221,21 @@
                 fragmentShader
             });
 
-            const totalInstances = GRID_SIZE * GRID_SIZE;
+            const totalInstances = GRID_COLS * GRID_ROWS;
             gridMesh = new THREE.InstancedMesh(geometry, shaderMaterial, totalInstances);
             scene.add(gridMesh);
 
             const matrix = new THREE.Matrix4();
             let instanceIndex = 0;
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    const worldX = i * CELL_SIZE - halfWorldSize + CELL_SIZE / 2;
-                    const worldY = j * CELL_SIZE - halfWorldSize + CELL_SIZE / 2;
+            for (let i = 0; i < GRID_COLS; i++) {
+                for (let j = 0; j < GRID_ROWS; j++) {
+                    const worldX = i * CELL_SIZE - halfWorldWidth + CELL_SIZE / 2;
+                    const worldY = j * CELL_SIZE - halfWorldHeight + CELL_SIZE / 2;
 
                     matrix.setPosition(worldX, worldY, 0);
                     gridMesh.setMatrixAt(instanceIndex, matrix);
 
-                    if (i < GRID_SIZE / 2) {
+                    if (i < GRID_COLS / 2) {
                         gridState[i][j] = STATE.BLUE;
                         gridMesh.setColorAt(instanceIndex, COLORS.BLUE);
                     } else {
@@ -249,7 +252,7 @@
                 ball.position.addScaledVector(ball.velocity, delta);
 
                 // Check collision with left/right boundaries using ball surface
-                if (Math.abs(ball.position.x) + BALL_RADIUS >= halfWorldSize) {
+                if (Math.abs(ball.position.x) + BALL_RADIUS >= halfWorldWidth) {
                     ball.velocity.x *= -1;
                     // Add small random deviation to direction
                     const velocity2D = new THREE.Vector2(ball.velocity.x, ball.velocity.y);
@@ -259,10 +262,10 @@
                     ball.velocity.y = velocity2D.y;
 
                     // Clamp position to surface
-                    ball.position.x = Math.sign(ball.position.x) * (halfWorldSize - BALL_RADIUS);
+                    ball.position.x = Math.sign(ball.position.x) * (halfWorldWidth - BALL_RADIUS);
                 }
                 // Check collision with top/bottom boundaries using ball surface
-                if (Math.abs(ball.position.y) + BALL_RADIUS >= halfWorldSize) {
+                if (Math.abs(ball.position.y) + BALL_RADIUS >= halfWorldHeight) {
                     ball.velocity.y *= -1;
                     // Add small random deviation to direction
                     const velocity2D = new THREE.Vector2(ball.velocity.x, ball.velocity.y);
@@ -272,7 +275,7 @@
                     ball.velocity.y = velocity2D.y;
 
                     // Clamp position to surface
-                    ball.position.y = Math.sign(ball.position.y) * (halfWorldSize - BALL_RADIUS);
+                    ball.position.y = Math.sign(ball.position.y) * (halfWorldHeight - BALL_RADIUS);
                 }
             });
         }
@@ -287,10 +290,10 @@
                 // Compute collision point at the ball's surface in the direction of movement
                 const velocityDir = ball.velocity.clone().normalize();
                 const collisionPoint = ball.position.clone().add(velocityDir.multiplyScalar(BALL_RADIUS));
-                const gridX = Math.floor(collisionPoint.x + halfWorldSize);
-                const gridY = Math.floor(collisionPoint.y + halfWorldSize);
+                const gridX = Math.floor(collisionPoint.x + halfWorldWidth);
+                const gridY = Math.floor(collisionPoint.y + halfWorldHeight);
 
-                if (gridX >= 0 && gridX < GRID_SIZE && gridY >= 0 && gridY < GRID_SIZE) {
+                if (gridX >= 0 && gridX < GRID_COLS && gridY >= 0 && gridY < GRID_ROWS) {
                     const currentCellState = gridState[gridX][gridY];
 
                     if (currentCellState === ball.collisionState) {
@@ -314,7 +317,7 @@
 
                         gridState[gridX][gridY] = newState;
 
-                        const instanceIndex = gridX * GRID_SIZE + gridY;
+                        const instanceIndex = gridX * GRID_ROWS + gridY;
                         gridMesh.setColorAt(instanceIndex, newColor);
                         needsColorUpdate = true;
 
@@ -336,12 +339,12 @@
         }
 
         function onWindowResize() {
-            const aspect = window.innerWidth / window.innerHeight;
+            const aspect = 1; // window.innerWidth / window.innerHeight;
 
-            camera.left = -halfWorldSize * Math.max(1, aspect);
-            camera.right = halfWorldSize * Math.max(1, aspect);
-            camera.top = halfWorldSize * Math.max(1, 1 / aspect);
-            camera.bottom = -halfWorldSize * Math.max(1, 1 / aspect);
+            camera.left = -halfWorldWidth * Math.max(1, aspect);
+            camera.right = halfWorldWidth * Math.max(1, aspect);
+            camera.top = halfWorldHeight * Math.max(1, 1 / aspect);
+            camera.bottom = -halfWorldHeight * Math.max(1, 1 / aspect);
 
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -373,8 +376,8 @@
                 waveActive = false;
                 // Restore all cell colors to their state color
                 let idx = 0;
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
+                for (let i = 0; i < GRID_COLS; i++) {
+                    for (let j = 0; j < GRID_ROWS; j++) {
                         const state = gridState[i][j];
                         gridMesh.setColorAt(idx, state === STATE.WHITE ? COLORS.WHITE : COLORS.BLUE);
                         idx++;
@@ -387,8 +390,8 @@
             const matrix = new THREE.Matrix4();
             const scale = new THREE.Vector3();
             let instanceIndex = 0;
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
+            for (let i = 0; i < GRID_COLS; i++) {
+                for (let j = 0; j < GRID_ROWS; j++) {
                     // Calculate distance from wave center
                     const dx = i - waveCenterX;
                     const dy = j - waveCenterY;
@@ -408,8 +411,8 @@
                     }
                     scale.set(s, s, 1.0);
                     // Set position
-                    const worldX = i * CELL_SIZE - halfWorldSize + CELL_SIZE / 2;
-                    const worldY = j * CELL_SIZE - halfWorldSize + CELL_SIZE / 2;
+                    const worldX = i * CELL_SIZE - halfWorldWidth + CELL_SIZE / 2;
+                    const worldY = j * CELL_SIZE - halfWorldHeight + CELL_SIZE / 2;
                     matrix.compose(
                         new THREE.Vector3(worldX, worldY, 0),
                         new THREE.Quaternion(),
@@ -426,8 +429,8 @@
 
             // Update cell counts and display
             let blueCount = 0, whiteCount = 0;
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
+            for (let i = 0; i < GRID_COLS; i++) {
+                for (let j = 0; j < GRID_ROWS; j++) {
                     if (gridState[i][j] === STATE.BLUE) blueCount++;
                     else if (gridState[i][j] === STATE.WHITE) whiteCount++;
                 }

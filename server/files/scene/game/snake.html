@@ -515,7 +515,7 @@
         /**
          * Resets the entire game state to its initial configuration (two snakes, two food items).
          */
-        function resetGame() {
+        function resetGame(collisionSnake = -1) {
             // Clear existing food from scene
             if (snake1FoodObject) scene.remove(snake1FoodObject);
             if (snake2FoodObject) scene.remove(snake2FoodObject);
@@ -535,8 +535,12 @@
                 snakes.push(new Snake("snake2", Math.floor(GRID_DIMS * 3 / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(-1, 0, 0), snake2HeadMaterial, snake2BodyMaterial));
             } else {
                 // Reset existing snakes
-                snakes[0].resetState(Math.floor(GRID_DIMS / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(1, 0, 0));
-                snakes[1].resetState(Math.floor(GRID_DIMS * 3 / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(-1, 0, 0));
+                if (collisionSnake === 0 || collisionSnake === -1) {
+                    snakes[0].resetState(Math.floor(GRID_DIMS / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(1, 0, 0));
+                }
+                if (collisionSnake === 1 || collisionSnake === -1) {
+                    snakes[1].resetState(Math.floor(GRID_DIMS * 3 / 4), Math.floor(GRID_DIMS / 2), new THREE.Vector3(-1, 0, 0));
+                }
             }
 
             // Create food for each snake AFTER snakes are initialized
@@ -655,9 +659,12 @@
                     collisionOccurred = true;
                 }
 
+                let collisionSnake = -1
+
                 if (!collisionOccurred) {
                     // Phase 3: Move snakes and check for individual collisions/food
-                    for (const snake of snakes) {
+                    for (let i = 0 ; i < snakes.length; i++) {
+                        const snake = snakes[i];
                         snake.bodyGridPositionsPrev = snake.bodyGridPositions.map(v => v.clone()); // Store for interpolation
 
                         const newHeadGridPos = potentialNewHeadPositions.get(snake.id);
@@ -668,6 +675,7 @@
                         if (snake.checkCollision(newHeadGridPos, otherSnakeBodies, myFoodPos)) {
                             // console.log(`Collision detected for ${snake.id}! Resetting game.`);
                             collisionOccurred = true;
+                            collisionSnake = i;
                             break; // Break inner loop if a collision is found
                         }
 
@@ -684,7 +692,7 @@
                 }
 
                 if (collisionOccurred) {
-                    resetGame();
+                    resetGame(collisionSnake);
                     renderer.render(scene, camera); // Render immediately after reset
                     return; // Stop current frame processing for this loop iteration
                 }
@@ -817,8 +825,8 @@
             gridHelper = new THREE.GridHelper(
                 GRID_DIMS * SQUARE_SIZE, // Size of the grid
                 GRID_DIMS,               // Number of divisions
-                0x444444 ,                // Center line color (green)
-                0x444444                 // Grid color (dark gray)
+                0xAAAAAA ,                // Center line color (green)
+                0xAAAAAA                // Grid color (dark gray)
             );
             gridHelper.material.opacity = 0.5; // Make grid lines translucent
             gridHelper.material.transparent = true;
