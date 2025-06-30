@@ -99,7 +99,7 @@ class DefaultDashboard extends Component<Props, State> {
     }
 
     if (this.props.kiosk.scenes[nextIndex] === Scene.Game) {
-      refreshInterval = SCENE.refreshInterval * 2; // Games might need more time
+      refreshInterval = SCENE.refreshInterval * 5; // Games might need more time
     }
 
     return [nextIndex, refreshInterval];
